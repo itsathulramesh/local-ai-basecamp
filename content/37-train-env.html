@@ -1,0 +1,73 @@
+<!-- {"id": "train-env", "module": "9", "title": "Set up your training environment on Windows", "minutes": 14, "optional": false} -->
+<p class="lede">Training tools are developed on Linux first. On Windows you have three good options. This lesson sets up the one most tutorials assume (WSL2 with your NVIDIA GPU), shows the cloud alternative, and proves everything works before you spend time on a real run.</p>
+<div class="goals"><h4>What you will learn</h4><ul>
+<li>Choose between WSL2, native Windows and a cloud GPU</li>
+<li>Set up WSL2 with GPU access, Python and Unsloth</li>
+<li>Verify PyTorch sees your GPU</li>
+<li>Rent a cloud GPU safely when your card is too small</li>
+</ul></div>
+
+<h2>Three options</h2>
+<div class="tw"><table><thead><tr><th>Option</th><th>Good for</th><th>Watch out for</th></tr></thead><tbody>
+<tr><td><b>WSL2 (Ubuntu) on your PC</b></td><td>Following tutorials as written, using your own GPU</td><td>Keep files in the Linux filesystem for speed</td></tr>
+<tr><td>Native Windows Python</td><td>Simple PyTorch scripts (lesson 10.2 and 10.3 work here)</td><td>Some training libraries lag on Windows</td></tr>
+<tr><td>Cloud GPU (Colab, rented)</td><td>Models too big for your card</td><td>Someone else's computer: upload only data you are comfortable leaking</td></tr>
+</tbody></table></div>
+
+<h2>WSL2 with your NVIDIA GPU</h2>
+<ol>
+<li>Update your Windows NVIDIA driver (lesson 2.2). That driver also serves WSL2.</li>
+<li>In PowerShell: <code>wsl --install</code> (installs Ubuntu), then restart.</li>
+<li>Open Ubuntu from the Start menu, create a user, then check the GPU:</li>
+</ol>
+<pre data-lang="bash"><code>nvidia-smi        # should show your card, from inside Linux</code></pre>
+<div class="box danger"><b>Do not install a Linux NVIDIA driver inside WSL</b>
+<p>The Windows driver provides GPU access to WSL2. Installing a Linux display driver inside Ubuntu breaks it. PyTorch and Unsloth bring the CUDA libraries they need.</p></div>
+
+<h2>Python and Unsloth inside WSL2</h2>
+<pre data-lang="bash"><code>sudo apt update && sudo apt install -y python3-venv python3-pip git build-essential
+mkdir -p ~/ai-lab/finetune && cd ~/ai-lab/finetune
+python3 -m venv .venv && source .venv/bin/activate
+pip install --upgrade pip
+pip install --upgrade unsloth unsloth_zoo
+python -c "import torch, unsloth, transformers, trl; print(torch.__version__, torch.cuda.is_available(), transformers.__version__)"</code></pre>
+<p>If the last line prints <code>True</code>, you are ready. Unsloth's installation steps change with CUDA and PyTorch versions, and newer model families need recent Transformers versions (Qwen3.5 needs Transformers 5). If anything fails, copy the install cell from Unsloth's current notebook for your model.</p>
+<div class="box warn"><b>RTX 50-series cards</b>
+<p>Blackwell GPUs need PyTorch built with CUDA 12.8 or newer. If you see "no kernel image is available", install the newest PyTorch build from pytorch.org first, then Unsloth.</p></div>
+
+<h3>Move your dataset in</h3>
+<p>Your Windows files are visible in WSL under <code>/mnt/c</code>. Copy the data into the Linux side for speed:</p>
+<pre data-lang="bash"><code>cp -r /mnt/c/Users/$USER_WINDOWS/ai-lab/finetune/data ~/ai-lab/finetune/
+# replace $USER_WINDOWS with your Windows user name
+ls ~/ai-lab/finetune/data</code></pre>
+<p>Windows Explorer can open the Linux side too: type <code>\\wsl$</code> in the address bar.</p>
+
+<h2>Prove the GPU works for training</h2>
+<pre data-lang="python"><code>import torch
+p = torch.cuda.get_device_properties(0)
+print(p.name, round(p.total_memory / 1024**3, 1), "GiB")
+x = torch.randn(4096, 4096, device="cuda", requires_grad=True)
+loss = (x @ x).mean()
+loss.backward()
+print("forward + backward on GPU OK; peak memory",
+      round(torch.cuda.max_memory_allocated() / 1024**3, 2), "GiB")</code></pre>
+
+<h2>When your card is too small: cloud GPUs</h2>
+<div class="tw"><table><thead><tr><th>Option</th><th>What you get</th><th>Good for</th></tr></thead><tbody>
+<tr><td>Google Colab (free)</td><td>A shared 16 GB T4, time limits</td><td>Models up to about 4B. Unsloth publishes free notebooks.</td></tr>
+<tr><td>Colab paid / Kaggle</td><td>Bigger GPUs when available</td><td>9B-class runs</td></tr>
+<tr><td>RunPod, Lambda, Vast.ai</td><td>A whole GPU machine by the hour</td><td>Anything you pay for</td></tr>
+</tbody></table></div>
+<div class="box danger"><b>Cloud safety checklist</b>
+<ul>
+<li>Upload only scrubbed data you would be comfortable seeing leak. On marketplaces, the host has physical access to the machine.</li>
+<li>Log in with an SSH key, not a password. Keep Jupyter or any web UI bound to <code>127.0.0.1</code> and reach it through an SSH tunnel: <code>ssh -L 8888:127.0.0.1:8888 user@host</code>.</li>
+<li>No access tokens on the machine unless needed. If you must push to Hugging Face, use a fine-grained token for one private repo and revoke it afterwards.</li>
+<li>Check copied notebooks for <code>push_to_hub</code> calls before running them.</li>
+<li>After downloading results, verify checksums, then delete the instance <i>and</i> its storage volume.</li>
+</ul></div>
+
+<div class="quiz"><h3>Check yourself</h3>
+<div class="q" data-correct="2"><p class="qt">Inside WSL2, <code>nvidia-smi</code> fails. What should you NOT do?</p><ol><li>Update the Windows NVIDIA driver</li><li>Install a Linux NVIDIA display driver inside Ubuntu</li><li>Restart WSL with <code>wsl --shutdown</code></li></ol><p class="why">The Windows driver provides GPU access. A Linux driver inside WSL breaks it.</p></div>
+<div class="q" data-correct="3"><p class="qt">Where should you keep training files when using WSL2?</p><ol><li>On a USB stick</li><li>Under <code>/mnt/c</code></li><li>In the Linux home folder</li></ol><p class="why">Crossing the Windows-Linux boundary is much slower.</p></div>
+</div>

@@ -1,0 +1,64 @@
+<!-- {"id": "welcome", "module": "0", "title": "Welcome and how to use this course", "minutes": 8, "optional": false} -->
+<p class="lede">You already use ChatGPT, Claude and Gemini. This course takes you from there to running, understanding, training and customising open-weight models on your own Windows PC with an NVIDIA graphics card, including making your own uncensored variants. It assumes no AI knowledge and only basic Python.</p>
+<div class="goals"><h4>What you will learn</h4><ul>
+<li>What the course covers and what you will be able to do at the end</li>
+<li>How each lesson is laid out and how to study so things stick</li>
+<li>What to set up on day one</li>
+</ul></div>
+
+<h2>Where you will end up</h2>
+<p>By the end you will be able to:</p>
+<ul>
+<li>Explain how a language model works, from tokens to the transformer to training.</li>
+<li>Pick models that fit your graphics card, run them in LM Studio and Ollama, and tune every setting.</li>
+<li>Use local models from your own Python code, with structured output, tools and your own documents.</li>
+<li>Fine-tune a model on your own data with LoRA, evaluate it honestly, and export it to GGUF.</li>
+<li>Change a model's behaviour by steering and by editing its weights, including abliteration, and build your own uncensored custom model.</li>
+</ul>
+
+<h2>The path</h2>
+<div class="path"><span class="you">You are here</span><i>→</i><span>1 AI in plain English</span><i>→</i><span>2 Your PC</span><i>→</i><span>3 Model files and memory math</span><i>→</i><span>4 Run models</span><i>→</i><span>5 Aligned vs uncensored</span><i>→</i><span>6 Use it for real</span><i>→</i><span>7 How models work</span><i>→</i><span>8 Customize</span><i>→</i><span>9 Fine-tune</span><i>→</i><span>10 Uncensor and edit</span><i>→</i><span>11 Capstone</span></div>
+<p>Modules 1 to 6 are the foundations: concepts, hardware, running models and using them well. Modules 7 to 11 are training and editing. The suggested pace is eight weeks at about six hours a week. The <a href="#roadmap">8-week plan</a> lists exactly which lessons to read each week and what to build.</p>
+
+<h2>Four milestones</h2>
+<div class="tw"><table><thead><tr><th>Milestone</th><th>After</th><th>You can…</th></tr></thead><tbody>
+<tr><td>1. Running locally</td><td>Week 2 (modules 1 to 3, lesson 4.1)</td><td>Run a model on your GPU and explain every number: size, VRAM, context, speed</td></tr>
+<tr><td>2. Using it for real</td><td>Week 4 (modules 4 to 6)</td><td>Pick models, tune settings, and use a model from Python with RAG and tools</td></tr>
+<tr><td>3. Your first fine-tune</td><td>Week 7 (modules 7 to 9)</td><td>Train a LoRA on your own data, evaluate it, and run it in LM Studio</td></tr>
+<tr><td>4. Your own model</td><td>Week 8 (modules 10 and 11)</td><td>Steer and edit weights, and build your own uncensored custom model</td></tr>
+</tbody></table></div>
+<p>Lessons marked <b>Optional</b> are deep dives or reference material. Skip them on a first pass; the core path still works without them.</p>
+
+<h2>How each lesson works</h2>
+<ul>
+<li>A short list of what you will be able to do at the end.</li>
+<li><b>Concept</b> boxes hold the one idea worth remembering. Say it back in your own words.</li>
+<li><b>On your PC</b> boxes tell you what to click or type on Windows.</li>
+<li>Calculators and demos are live. Change the numbers and watch what moves.</li>
+<li>Scripts are complete and can be copied with one click. Run them; do not just read them.</li>
+<li>Every lesson ends with a short "Check yourself" quiz. Try to answer before you read the explanation. Retrieval practice is the most effective study method there is.</li>
+</ul>
+
+<h2>How to study</h2>
+<ol>
+<li>Make a folder called <code>ai-lab</code> in your user folder and a file in it called <code>NOTES.md</code>. Write down your GPU, your numbers and your surprises. You will use these notes in later lessons.</li>
+<li>Do the hands-on steps on your own machine. Reading about VRAM is not the same as watching it fill up.</li>
+<li>Change one thing at a time. If you change the model and the context length together you learn nothing.</li>
+<li>Expect to be confused for a while. Terms like "quantization" sound intimidating and turn out to be simple. The glossary and search (<kbd>Ctrl</kbd>+<kbd>K</kbd>) are one click away.</li>
+<li>When something breaks, write down the exact error. That is the start of fixing it.</li>
+</ol>
+
+<div class="box tip"><b>Day one checklist</b>
+<label class="ck"><input type="checkbox" data-k="d1-a"><span>Create the <code>ai-lab</code> folder and <code>NOTES.md</code></span></label>
+<label class="ck"><input type="checkbox" data-k="d1-b"><span>Find out which graphics card you have (lesson 2.1 shows how)</span></label>
+<label class="ck"><input type="checkbox" data-k="d1-c"><span>Free up at least 50 GB of disk space. Models and training outputs are big files.</span></label>
+<label class="ck"><input type="checkbox" data-k="d1-d"><span>Skim the <a href="#roadmap">8-week plan</a></span></label>
+<p></p></div>
+
+<div class="box warn"><b>A note on dates</b>
+<p>Local AI moves fast. Specific model names, versions and app screens in this course reflect November 2026. The ideas (memory math, file formats, sampling, LoRA, directions) do not change. When a model name here looks old, search for the newest model in the same size class and apply the same method.</p></div>
+
+<div class="quiz"><h3>Check yourself</h3>
+<div class="q" data-correct="3"><p class="qt">Why does this course start with concepts and hardware instead of training?</p><ol><li>Training is not possible on Windows</li><li>Training is less important than chatting</li><li>Training decisions (model size, VRAM, templates, evaluation) depend on understanding how models and your hardware work</li></ol><p class="why">Every choice in module 9 builds on modules 1 to 7.</p></div>
+<div class="q" data-correct="1"><p class="qt">What is the best use of the "Check yourself" questions?</p><ol><li>Try to answer before reading the explanation</li><li>Skip them if you understood the lesson</li><li>Read the answers first so you do not get anything wrong</li></ol><p class="why">Trying to recall an answer, even when you get it wrong, strengthens memory far more than rereading.</p></div>
+</div>

@@ -1,0 +1,102 @@
+<!-- {"id": "directions", "module": "10", "title": "Features are directions: interpretability for builders", "minutes": 14, "optional": false} -->
+<p class="lede">Steering, ablation and abliteration all rest on one research finding: many behaviours a model tracks show up as a direction in its residual stream. This lesson makes that idea concrete and gives you the toolkit the next three lessons use.</p>
+<div class="goals"><h4>What you will learn</h4><ul>
+<li>Explain "features are directions" and why superposition complicates it</li>
+<li>Find a direction with the difference-of-means recipe</li>
+<li>Set up a small PyTorch toolkit that runs on your NVIDIA GPU</li>
+<li>Know the other interpretability tools by name</li>
+</ul></div>
+
+<h2>The residual stream is a vector space</h2>
+<p>Recall lesson 7.2: every layer reads and adds to the token's running vector. For a small model that vector has 1,024 numbers, for a 9B about 4,096. You can treat it as a point in a space with that many axes. Research consistently finds that concepts the model tracks (positive or negative sentiment, "this is code", "answer briefly", "I should refuse") tend to correspond to <b>directions</b> in that space: moving the vector along a direction strengthens or weakens the concept.</p>
+<div class="box concept"><b>Concept: superposition</b>
+<p>There are far more concepts than axes, so the model packs many features into overlapping, nearly-perpendicular directions. That is why editing one direction usually has small side effects on others. Every technique in this module comes with a side-effect check for this reason.</p></div>
+
+<h2>Finding a direction: difference of means</h2>
+<ol>
+<li>Write two sets of prompts that differ only in the property you care about (a <b>contrast pair</b> set).</li>
+<li>Run each prompt and record the residual stream at the last prompt token, where the model is about to answer.</li>
+<li>Average each set. Subtract one average from the other.</li>
+<li>The result points from one behaviour toward the other. Divide by its length to get a pure direction.</li>
+</ol>
+<p>That is all abliteration does to find its "refusal direction": requests the model refuses versus requests it answers.</p>
+<div class="box warn"><b>Confounds ruin directions</b>
+<p>If all your "verbose" prompts are about history and all your "concise" ones about maths, you have built a history-versus-maths direction. Make the two sets identical except for the property, ideally the same questions with a different instruction.</p></div>
+
+<h2>The toolkit: dirkit.py</h2>
+<p>Use the AI Python environment from lesson 2.3 (<code>.venv-ai</code>), which already has PyTorch and Transformers. The toolkit uses a small model so experiments take minutes, even on a 4 GB card. Save it as <code>dirkit.py</code> in a folder like <code>ai-lab\weights</code>; the scripts in lessons 10.1 to 10.3 sit next to it.</p>
+<pre data-lang="powershell"><code>cd $HOME\ai-lab
+.venv-ai\Scripts\Activate.ps1
+mkdir weights; cd weights</code></pre>
+<pre data-lang="python"><code>"""dirkit.py: shared helpers for direction experiments."""
+import torch
+from transformers import AutoModelForCausalLM, AutoTokenizer
+
+MODEL = "Qwen/Qwen3-0.6B"     # small and fast; swap for any chat model with safetensors weights
+
+
+def load(name=MODEL):
+    tok = AutoTokenizer.from_pretrained(name)
+    model = AutoModelForCausalLM.from_pretrained(name, dtype=(torch.bfloat16 if torch.cuda.is_bf16_supported() else torch.float16), device_map="cuda")  # float16 on GTX 16 / RTX 20 cards
+    model.eval()
+    return tok, model
+
+
+def chat(tok, user, system=None):
+    msgs = ([{"role": "system", "content": system}] if system else []) + [{"role": "user", "content": user}]
+    return tok.apply_chat_template(msgs, tokenize=False, add_generation_prompt=True, enable_thinking=False)
+
+
+@torch.no_grad()
+def last_token_states(model, tok, texts):
+    """Residual stream at the final prompt token: tensor [n_layers + 1, n_texts, hidden].
+    Index 0 is the embedding output; index i is the output of decoder layer i - 1."""
+    out = []
+    for t in texts:
+        ids = tok(t, return_tensors="pt").to(model.device)
+        hs = model(**ids, output_hidden_states=True).hidden_states
+        out.append(torch.stack([h[0, -1].float().cpu() for h in hs]))
+    return torch.stack(out, dim=1)
+
+
+@torch.no_grad()
+def generate(model, tok, text, max_new_tokens=200):
+    ids = tok(text, return_tensors="pt").to(model.device)
+    o = model.generate(**ids, max_new_tokens=max_new_tokens, do_sample=False)
+    new = o[0, ids.input_ids.shape[1]:]
+    return tok.decode(new, skip_special_tokens=True), len(new)
+
+
+def read_lines(path):
+    return [l.strip() for l in open(path, encoding="utf-8") if l.strip()]</code></pre>
+
+<h2>First experiment: is there a "be brief" direction?</h2>
+<pre data-lang="python"><code>"""find_direction.py: difference of means for concise vs verbose instructions."""
+import torch
+from dirkit import load, chat, last_token_states
+
+QS = ["What is DNS?", "Why is the sky blue?", "What does a firewall do?", "How do vaccines work?",
+      "What is a hash function?", "Why do we have seasons?", "What is TLS?", "How does a compiler work?",
+      "What is inflation?", "What causes earthquakes?", "What is a VPN?", "How does GPS work?"]
+tok, model = load()
+verbose = last_token_states(model, tok, [chat(tok, q, "Answer at length with detail and examples.") for q in QS])
+concise = last_token_states(model, tok, [chat(tok, q, "Answer in one short sentence.") for q in QS])
+diff = verbose.mean(1) - concise.mean(1)                    # [layers + 1, hidden]
+scale = verbose.norm(dim=-1).mean(1)
+for i in range(0, diff.shape[0], 2):
+    print(f"layer {i:2d}: |difference| = {diff[i].norm():7.2f}   typical |stream| = {scale[i]:7.2f}")
+torch.save(diff, "verbose_minus_concise.pt")</code></pre>
+<p>Read the table. The difference is usually small in the earliest layers and grows through the middle. Keep the saved file: the next two lessons use it.</p>
+
+<h2>Other tools, by name</h2>
+<ul>
+<li><b>Linear probes</b>: train a tiny classifier on activations to test whether a concept is readable at a layer.</li>
+<li><b>Logit lens</b>: decode the residual stream at intermediate layers to see what the model "would say" so far.</li>
+<li><b>Activation patching</b>: copy activations from one run into another to find which components cause a behaviour.</li>
+<li><b>Sparse autoencoders</b>: learn a large dictionary of cleaner features from activations. Used heavily in current research.</li>
+</ul>
+
+<div class="quiz"><h3>Check yourself</h3>
+<div class="q" data-correct="2"><p class="qt">What is the difference-of-means recipe?</p><ol><li>Average the model's weights</li><li>Average activations for two contrasting prompt sets and subtract</li><li>Compare two models' file sizes</li></ol><p class="why">The subtraction points from one behaviour to the other.</p></div>
+<div class="q" data-correct="1"><p class="qt">Why do direction edits have side effects?</p><ol><li>Features overlap in the same space (superposition)</li><li>GPUs are imprecise</li><li>Prompts are too short</li></ol><p class="why">Removing one direction slightly affects features that overlap with it.</p></div>
+</div>

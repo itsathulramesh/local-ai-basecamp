@@ -1,0 +1,74 @@
+<!-- {"id": "chat-templates", "module": "7", "title": "Base, instruct, thinking models and chat templates", "minutes": 13, "optional": false} -->
+<p class="lede">The most common reason a fine-tune "works in the notebook but is broken in LM Studio" is the chat template. This lesson explains the hidden text format every chat model expects, so your training data and your inference match exactly.</p>
+<div class="goals"><h4>What you will learn</h4><ul>
+<li>Distinguish base, instruct and thinking models and how each is made</li>
+<li>Read a rendered chat template with its special tokens</li>
+<li>Know where the template lives and what breaks when it is wrong</li>
+<li>Decode model names and read a model card for training-relevant facts</li>
+</ul></div>
+
+<h2>One pretraining run, three kinds of model</h2>
+<div class="tw"><table><thead><tr><th>Kind</th><th>Made by</th><th>Behaviour</th><th>Train on it when…</th></tr></thead><tbody>
+<tr><td>Base</td><td>Pretraining only</td><td>Continues any text. Does not follow instructions.</td><td>You want full control and have lots of data</td></tr>
+<tr><td>Instruct / chat</td><td>Base + SFT + preference tuning</td><td>Follows instructions, uses a chat format</td><td>Almost always. It already knows how to be an assistant.</td></tr>
+<tr><td>Thinking / reasoning</td><td>Instruct + reasoning training</td><td>Writes a hidden chain of thought, then answers</td><td>You also train with reasoning in most examples</td></tr>
+</tbody></table></div>
+<p>Many recent models are hybrid: one model with a switch (often called <code>enable_thinking</code>) that turns thinking on or off through the chat template.</p>
+
+<h2>What a chat template is</h2>
+<p>The model does not see "messages". It sees one long string. The <b>chat template</b> is a small program (written in a language called Jinja) that turns a list of messages into that string with special marker tokens. For Qwen-family models a two-turn chat renders roughly like this:</p>
+<pre data-lang="text"><code>&lt;|im_start|&gt;system
+You are a concise tutor.&lt;|im_end|&gt;
+&lt;|im_start|&gt;user
+What is VRAM?&lt;|im_end|&gt;
+&lt;|im_start|&gt;assistant
+&lt;think&gt;
+
+&lt;/think&gt;
+
+VRAM is the graphics card's own memory.&lt;|im_end|&gt;</code></pre>
+<ul>
+<li><code>&lt;|im_start|&gt;</code> and <code>&lt;|im_end|&gt;</code> are <b>special tokens</b>: single token ids that mark the start and end of each turn.</li>
+<li>The <b>role</b> (system, user, assistant, and sometimes tool) follows the start marker.</li>
+<li>The empty <code>&lt;think&gt;&lt;/think&gt;</code> block is how this family represents "thinking turned off".</li>
+<li>Generation stops when the model produces the end-of-turn token. That is the <b>end-of-sequence</b> (EOS) behaviour.</li>
+</ul>
+<p>Other families use different markers (Llama, Gemma and Mistral each have their own). You never type these by hand. The tokenizer does it with <code>apply_chat_template</code>.</p>
+
+<h2>See it yourself</h2>
+<pre data-lang="python"><code>from transformers import AutoTokenizer
+tok = AutoTokenizer.from_pretrained("Qwen/Qwen3-0.6B")
+msgs = [{"role": "system", "content": "You are a concise tutor."},
+        {"role": "user", "content": "What is VRAM?"}]
+print(tok.apply_chat_template(msgs, tokenize=False, add_generation_prompt=True))</code></pre>
+<p><code>add_generation_prompt=True</code> appends the opening of the assistant turn so the model knows it is its turn to speak. For training data you set it to False because the assistant answer is already included.</p>
+
+<h2>Where the template lives</h2>
+<ul>
+<li>In a Hugging Face model folder: inside <code>tokenizer_config.json</code> or a separate <code>chat_template.jinja</code>.</li>
+<li>In a GGUF: copied into the file's metadata (<code>tokenizer.chat_template</code>) at conversion time.</li>
+<li>In LM Studio: read from the GGUF, and overridable per model under My Models, then the settings for Prompt Template.</li>
+<li>In Ollama: the <code>TEMPLATE</code> in the Modelfile, usually filled in automatically from the GGUF.</li>
+</ul>
+
+<h2>What breaks with a wrong template</h2>
+<div class="tw"><table><thead><tr><th>Symptom</th><th>Cause</th></tr></thead><tbody>
+<tr><td>Model keeps talking past its answer, or starts writing the user's next message</td><td>EOS token not recognised</td></tr>
+<tr><td>Literal <code>&lt;|im_end|&gt;</code> or similar appears in the output</td><td>Special tokens treated as plain text</td></tr>
+<tr><td>Fine-tune behaves like the original model</td><td>Inference uses a different format from training, so the learned pattern never triggers</td></tr>
+<tr><td>Unexpected thinking text, or none when you want it</td><td>Thinking switch differs between training and inference</td></tr>
+</tbody></table></div>
+<div class="box concept"><b>Concept: train and serve with the same template</b>
+<p>Your training script renders examples with the model's own template. LM Studio or Ollama must render conversations with the same template, the same system prompt style and the same thinking setting. Lesson 9.6 shows how to check the template inside your exported GGUF.</p></div>
+
+<h2>Decoding model names</h2>
+<p>A name like <code>Qwen3.5-9B-Instruct-abliterated-Q4_K_M.gguf</code> breaks down into family and version (Qwen3.5), size (9B), kind (Instruct), modification (abliterated), quantization (Q4_K_M) and format (gguf). Other tags you will see: <code>-it</code> (instruct), <code>-Base</code>, <code>-A3B</code> (active parameters in a mixture-of-experts model), <code>-VL</code> (vision-language), <code>-Coder</code>.</p>
+
+<h2>Read a model card like a trainer</h2>
+<p>Before fine-tuning a model, find these on its card: the licence, whether it is base or instruct, its maximum context, its recommended sampling settings, whether it has a thinking switch, and whether official <b>safetensors</b> weights exist. You can only train from safetensors, never from a GGUF.</p>
+
+<div class="quiz"><h3>Check yourself</h3>
+<div class="q" data-correct="2"><p class="qt">Your fine-tune prints <code>&lt;|im_end|&gt;</code> and keeps going. What is wrong?</p><ol><li>The learning rate was too high</li><li>The chat template or end-of-sequence token does not match at inference</li><li>The model is too small</li></ol><p class="why">The runtime is not treating the end-of-turn marker as the stop token.</p></div>
+<div class="q" data-correct="3"><p class="qt">Which file can you fine-tune from?</p><ol><li>A Q4_K_M GGUF</li><li>An Ollama blob</li><li>The original safetensors weights</li></ol><p class="why">Training libraries need the full-precision Hugging Face weights. GGUF is an inference format.</p></div>
+<div class="q" data-correct="1"><p class="qt">What does <code>add_generation_prompt=True</code> do?</p><ol><li>Adds the opening of the assistant turn so the model starts replying</li><li>Generates training data</li><li>Turns thinking on</li></ol><p class="why">It appends the assistant header. For training examples that already include the answer, set it to False.</p></div>
+</div>

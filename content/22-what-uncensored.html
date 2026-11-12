@@ -1,0 +1,73 @@
+<!-- {"id": "what-uncensored", "module": "5", "title": "What \"uncensored\" and \"abliterated\" models really are", "minutes": 12, "optional": false} -->
+<p class="lede">You have seen names like "uncensored", "abliterated" and "Dolphin". Here is what they mean, how they differ, and what you give up, with real measurements instead of hype.</p>
+<div class="goals"><h4>What you will learn</h4><ul>
+<li>Describe how uncensored fine-tunes and abliterated models are made, at a conceptual level</li>
+<li>Know the measured costs in quality and reliability</li>
+<li>Recognise the naming conventions</li>
+<li>Understand what these models cannot do</li>
+</ul></div>
+
+<div class="box warn"><b>Scope of this lesson</b>
+<p>This lesson explains the technology so you can judge it. It does not give instructions for making a model produce harmful content, and nothing in the course is a reason to do so. How you use any model is your decision and your responsibility.</p></div>
+
+<h2>Type 1: uncensored fine-tunes</h2>
+<p>The creator takes a model and trains it further on a dataset from which the refusals have been removed (replies like "I'm sorry, I can't" are filtered out). The model then learns to answer instead of declining. The best-known family is <b>Dolphin</b>, started by Eric Hartford. Names often include "uncensored".</p>
+
+<h2>Type 2: abliterated models</h2>
+<p>Researchers found that in many chat models, refusal is mediated largely by <b>a single direction</b> in the model's internal activations (Arditi et al., 2024, "Refusal in Language Models Is Mediated by a Single Direction"). <b>Abliteration</b> identifies that direction and removes it from the weights, so the model can no longer represent the "I should refuse" signal. It needs no big training run, just a modest set of example prompts and a consumer GPU for a short time. The result is a new model file. Names often end in "-abliterated".</p>
+<div class="box concept"><b>Concept: it is a weight edit, not a setting</b>
+<p>This is exactly the kind of weight editing you will do yourself in module 10. It is also a small, concrete example of why interpretability research matters: finding meaningful directions inside a model lets you steer it.</p></div>
+
+<h2>What it costs</h2>
+<p>Editing a model has side effects. A June 2026 LessWrong post measured one popular community abliterated model against its base (a 27B Qwen model):</p>
+<div class="tw"><table><thead><tr><th>Benchmark</th><th>Base</th><th>Abliterated</th><th>Change</th></tr></thead><tbody>
+<tr><td>MMLU (broad knowledge)</td><td class="num">84.44%</td><td class="num">83.78%</td><td class="num">−0.66 points</td></tr>
+<tr><td>TruthfulQA MC1</td><td class="num">40.27%</td><td class="num">34.52%</td><td class="num">−5.75 points</td></tr>
+<tr><td>TruthfulQA MC2</td><td class="num">58.25%</td><td class="num">51.39%</td><td class="num">−6.87 points</td></tr>
+</tbody></table></div>
+<p>Two lessons follow. Knowledge barely changed, but truthfulness dropped noticeably, so cost is uneven across tasks. And this was one model with, by its author's own description, a crude proof-of-concept edit, so it is not a universal figure. Community reports for other builds describe the damage as usually small but sometimes real: weaker instruction following, more hallucination and more variance between releases.</p>
+
+<h2>What these models are not</h2>
+<ul>
+<li><b>Not smarter.</b> Removing refusals adds no knowledge. The model knows exactly what it knew before.</li>
+<li><b>Not guaranteed to comply.</b> Some still decline sometimes, and many simply give weaker answers.</li>
+<li><b>Not a good default.</b> For ordinary work, a good aligned model with a clear prompt is usually more accurate and more reliable.</li>
+</ul>
+
+<h2>Why people legitimately want them</h2>
+<ul>
+<li>Fiction and role-play where over-refusal ruins the story.</li>
+<li>Security, medical or legal education where a cautious model keeps refusing.</li>
+<li>Red-teaming and research, including measuring how much alignment changes a model.</li>
+<li>Private offline drafting where they would rather avoid a provider's rules.</li>
+<li>Synthetic data generation and as a baseline for comparison.</li>
+</ul>
+
+<h2>Vetting an uncensored model before you trust it</h2>
+<p>Model cards for uncensored releases often make big claims ("zero refusals", "no capability loss") without saying how the model was made or tested. Treat them like unaudited vendor claims and check what you can:</p>
+<div class="tw"><table><thead><tr><th>Check</th><th>How</th><th>What it tells you</th></tr></thead><tbody>
+<tr><td>Lineage</td><td>The card's <code>base_model</code> field and licence</td><td>What it was made from and what you may do with it</td></tr>
+<tr><td>Chat template</td><td>Compare the template in its GGUF with the official model's (lesson 9.6 has a script)</td><td>A changed template can cause odd behaviour</td></tr>
+<tr><td>File structure</td><td>Compare file sizes and tensor lists with the same quantization of the official model</td><td>Same structure means the edit changed weight values, not the architecture</td></tr>
+<tr><td>Refusals</td><td>Your own held-out legitimate prompts</td><td>Whether it actually answers what you need</td></tr>
+<tr><td>Quality</td><td>A regression set of normal questions (lesson 9.5)</td><td>Whether it got worse at everything else</td></tr>
+</tbody></table></div>
+<p>Remember what "0 refusals" does <b>not</b> mean: it says the model answers, not that the answers are correct. Two more risks to watch for: <b>confident compliance with wrong premises</b> (a model tuned never to say no may also be less inclined to say "that will not work"), and <b>sycophancy</b>, the tendency of preference-trained models to agree with the user, which removing refusals does nothing to fix.</p>
+
+<h2>Spotting them</h2>
+<div class="tw"><table><thead><tr><th>Sign</th><th>Usually means</th></tr></thead><tbody>
+<tr><td>"-abliterated" in the name</td><td>Weights edited to remove the refusal direction</td></tr>
+<tr><td>"uncensored" in the name</td><td>Usually a fine-tune on filtered data</td></tr>
+<tr><td>Dolphin (cognitivecomputations)</td><td>Uncensored fine-tune family</td></tr>
+<tr><td>Merge or "-v2" with no explanation</td><td>Check the card. Provenance is unclear.</td></tr>
+</tbody></table></div>
+<p>They are hosted on Hugging Face like any other model, mostly as GGUF, and run in LM Studio or Ollama in the same way.</p>
+
+<div class="box tip"><b>Lab: see it for yourself with harmless prompts</b>
+<p>Download an aligned model and, if you wish, an abliterated version of the same base and size. Run ten <i>benign but edgy</i> prompts, such as a villain's monologue, a morally grey short story, an honest discussion of how a historical atrocity happened, or explaining at a textbook level how a famous cyberattack worked. Score completeness, accuracy and style. Compare tokens per second too. Notes on what actually differed, and whether it mattered for your tasks, are the point.</p></div>
+
+<div class="quiz"><h3>Check yourself</h3>
+<div class="q" data-correct="2"><p class="qt">What does abliteration change?</p><ol><li>The text of the system prompt</li><li>The weights, by removing a direction linked to refusal</li><li>The model's licence</li></ol><p class="why">It is a direct weight edit, found through interpretability research.</p></div>
+<div class="q" data-correct="1"><p class="qt">Does an uncensored model know more than its aligned original?</p><ol><li>No. It has the same knowledge, with fewer refusals and possibly some quality loss</li><li>Yes, it unlocks hidden knowledge</li><li>Yes, because it is larger</li></ol><p class="why">Removing refusals adds nothing. The knowledge was already there.</p></div>
+<div class="q" data-correct="3"><p class="qt">Which is the best first step when a model refuses a legitimate request?</p><ol><li>Switch to an abliterated model immediately</li><li>Give up</li><li>Add the legitimate context and purpose to the prompt, or try another aligned model</li></ol><p class="why">Many refusals disappear with clear context, and aligned models are usually more reliable.</p></div>
+</div>

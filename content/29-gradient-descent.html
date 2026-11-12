@@ -1,0 +1,65 @@
+<!-- {"id": "gradient-descent", "module": "7", "title": "How a model learns: gradient descent by hand", "minutes": 14, "optional": false} -->
+<p class="lede">Before you train anything, you should see training happen with numbers small enough to follow. This lesson trains a single weight by hand and then in ten lines of Python. Every fine-tune you run later is this same loop, repeated across billions of weights.</p>
+<div class="goals"><h4>What you will learn</h4><ul>
+<li>Explain loss, gradient and learning rate with a worked example</li>
+<li>Run gradient descent yourself in Python</li>
+<li>Explain why "predict the next token" is the training objective of every LLM</li>
+<li>Connect these ideas to the numbers you will watch while fine-tuning</li>
+</ul></div>
+
+<h2>The setup: one knob</h2>
+<p>Take the smallest possible model: <code>y = w × x</code>. It has one weight, <code>w</code>. You do not know the right value. You only have examples:</p>
+<div class="tw"><table><thead><tr><th>Input x</th><th>Correct output y</th></tr></thead><tbody>
+<tr><td class="num">1</td><td class="num">3</td></tr><tr><td class="num">2</td><td class="num">6</td></tr><tr><td class="num">4</td><td class="num">12</td></tr>
+</tbody></table></div>
+<p>You can see the answer is 3, but the model cannot. It starts with a guess, say <code>w = 1</code>, and must find its way there.</p>
+
+<h2>Step 1: measure how wrong you are (the loss)</h2>
+<p>With <code>w = 1</code> the model predicts 1, 2 and 4. The errors are 2, 4 and 8. Square them (so negatives do not cancel and big misses count more) and average: (4 + 16 + 64) ÷ 3 ≈ 28. That single number is the <b>loss</b>. Lower is better. Zero means perfect.</p>
+<div class="box concept"><b>Concept: loss</b>
+<p>One number that says how wrong the model is on the examples. Training is nothing more than changing the weights to make this number smaller. When you fine-tune later, the trainer prints the loss every few steps and you watch it fall.</p></div>
+
+<h2>Step 2: find which way is downhill (the gradient)</h2>
+<p>If you nudge <code>w</code> up a little, does the loss go up or down? The <b>gradient</b> answers that: it is the slope of the loss with respect to the weight. For this model the slope works out to <code>2 × average((w·x − y) × x)</code>. At <code>w = 1</code>: errors × inputs are (−2×1, −4×2, −8×4) = (−2, −8, −32), average −14, times 2 = −28. A negative slope means "increase w and the loss falls".</p>
+
+<h2>Step 3: take a small step and repeat</h2>
+<p>Move the weight against the slope, scaled by a small number called the <b>learning rate</b>: <code>w ← w − learning_rate × gradient</code>. With a learning rate of 0.02: w becomes 1 − 0.02 × (−28) = 1.56. Recompute the loss (now smaller), recompute the slope, step again. After a few dozen steps, w is extremely close to 3.</p>
+<div class="box warn"><b>The learning rate is a balancing act</b>
+<p>Too small and training takes forever. Too large and each step overshoots the valley, so the loss bounces or explodes to <code>nan</code>. You will set exactly this number (for example <code>2e-4</code>) when you fine-tune, and you will meet exactly these symptoms if it is wrong.</p></div>
+
+<h2>Run it yourself</h2>
+<pre data-lang="python"><code>xs = [1, 2, 4]
+ys = [3, 6, 12]
+w, lr = 1.0, 0.02
+
+for step in range(30):
+    preds = [w * x for x in xs]
+    loss = sum((p - y) ** 2 for p, y in zip(preds, ys)) / len(xs)
+    grad = 2 * sum((p - y) * x for p, y, x in zip(preds, ys, xs)) / len(xs)
+    w -= lr * grad
+    if step % 5 == 0:
+        print(f"step {step:2d}  w = {w:.4f}  loss = {loss:.4f}")</code></pre>
+<p>Try <code>lr = 0.2</code> and watch it blow up. Try <code>lr = 0.001</code> and watch it crawl. This is the most useful five minutes in the module.</p>
+
+<h2>From one knob to billions</h2>
+<p>A real model has billions of weights, so nobody computes slopes by hand. Libraries like PyTorch use <b>backpropagation</b> to compute the slope for every weight at once, automatically. The loop is identical: predict, measure loss, compute gradients, step every weight a little, repeat.</p>
+<ul>
+<li><b>Batch</b>: the gradient is computed on a small group of examples at a time, not the whole dataset.</li>
+<li><b>Step</b>: one update of the weights.</li>
+<li><b>Epoch</b>: one full pass through the dataset.</li>
+<li><b>Optimizer</b>: a smarter version of "step downhill". <b>Adam</b> (or AdamW) keeps running averages of past gradients so each weight gets a sensible step size. It stores extra numbers per weight, which is why full training needs so much memory.</li>
+</ul>
+
+<h2>The objective of every LLM</h2>
+<p>For a language model, an "example" is a piece of text and the "correct output" at each position is simply the next token. The loss measures how much probability the model gave to the token that actually came next. Push that loss down over trillions of tokens and the model has to learn grammar, facts and reasoning patterns, because they all help predict the next word.</p>
+<div class="box concept"><b>Concept: fine-tuning uses the same loss</b>
+<p>When you fine-tune on your own chat examples, the loss is still "predict the next token", but only on the assistant's replies. The model gets graded on writing <i>your</i> ideal answers, and its weights drift toward producing them. Lesson 9.4 does exactly this.</p></div>
+
+<h2>Overfitting in one sentence</h2>
+<p>If you train too long on too few examples, the model memorises them instead of learning the pattern, like a student who memorised the answer key. You detect it by keeping some examples aside (a <b>validation set</b>): training loss keeps falling while validation loss starts rising.</p>
+
+<div class="quiz"><h3>Check yourself</h3>
+<div class="q" data-correct="2"><p class="qt">During training the loss suddenly becomes <code>nan</code>. Most likely cause?</p><ol><li>The dataset is too small</li><li>The learning rate is too high</li><li>The GPU is too slow</li></ol><p class="why">Steps that are too large overshoot and diverge. Lower the learning rate.</p></div>
+<div class="q" data-correct="3"><p class="qt">Training loss falls steadily but validation loss rises. What is happening?</p><ol><li>The model is learning perfectly</li><li>The learning rate is too low</li><li>Overfitting: the model is memorising the training examples</li></ol><p class="why">Stop earlier, use fewer epochs, or add more varied data.</p></div>
+<div class="q" data-correct="1"><p class="qt">What is the gradient?</p><ol><li>The slope that says which way to move each weight to reduce the loss</li><li>The size of the dataset</li><li>The model's final answer</li></ol><p class="why">Training steps each weight against its gradient.</p></div>
+</div>

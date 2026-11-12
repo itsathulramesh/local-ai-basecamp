@@ -1,0 +1,51 @@
+<!-- {"id": "open-vs-closed", "module": "1", "title": "Cloud AI vs local AI: closed, open-weight and open-source", "minutes": 9, "optional": false} -->
+<p class="lede">When you use ChatGPT, Claude or Gemini, your text travels to a data centre and a giant model answers. Running locally flips that around. The words "open" and "open-source" are used loosely, so this lesson sorts them out.</p>
+<div class="goals"><h4>What you will learn</h4><ul>
+<li>Tell closed, open-weight and open-source models apart</li>
+<li>Understand what a model licence lets you do</li>
+<li>Know the major open-weight families and who makes them</li>
+<li>Know honestly where local models are weaker than the cloud ones</li>
+</ul></div>
+
+<h2>Three kinds of model</h2>
+<div class="tw"><table><thead><tr><th></th><th>Closed (API-only)</th><th>Open-weight</th><th>Truly open-source</th></tr></thead><tbody>
+<tr><td>Examples</td><td>GPT, Claude, Gemini</td><td>Llama, Qwen, Gemma, gpt-oss, Mistral, DeepSeek</td><td>A few research models that also publish training data and code</td></tr>
+<tr><td>You can download the weights</td><td>No</td><td>Yes</td><td>Yes</td></tr>
+<tr><td>You can run it offline</td><td>No</td><td>Yes</td><td>Yes</td></tr>
+<tr><td>You can fine-tune it</td><td>Only through the vendor, if at all</td><td>Yes, within the licence</td><td>Yes</td></tr>
+<tr><td>You can see the training data</td><td>No</td><td>Usually no</td><td>Yes</td></tr>
+</tbody></table></div>
+<p>Most of what people call "open-source AI" is really <b>open-weight</b>: you get the finished model but not the recipe. That is still plenty. It means you can run it, inspect it and customise it.</p>
+
+<div class="box concept"><b>Concept: licence</b>
+<p>Every open-weight model comes with a licence. Some are permissive (Apache 2.0 and MIT allow almost any use, including commercial). Others add rules, such as a limit on very large companies or a list of banned uses. Read the licence on the model's page before building a product on it. For learning and personal use, nearly all are fine.</p></div>
+
+<h2>Where the major families come from</h2>
+<ul>
+<li><b>Qwen</b> (Alibaba): a large range of sizes, strong at coding and many languages.</li>
+<li><b>Llama</b> (Meta): the family that started the open-weight boom.</li>
+<li><b>Gemma</b> (Google): compact, well-tuned models.</li>
+<li><b>gpt-oss</b> (OpenAI): open-weight models released under Apache 2.0.</li>
+<li><b>Mistral / Ministral</b> (Mistral AI): efficient European models.</li>
+<li><b>DeepSeek</b> (DeepSeek): very strong but very large flagship models, plus smaller distilled versions.</li>
+<li><b>Phi</b> (Microsoft), <b>Granite</b> (IBM), <b>Nemotron</b> (NVIDIA), <b>GLM</b> (Z.ai): other capable families.</li>
+</ul>
+<p>Lesson 4.5 shows how to pick between them.</p>
+
+<h2>Honest comparison</h2>
+<div class="tw"><table><thead><tr><th></th><th>Cloud chat apps</th><th>Local model on your PC</th></tr></thead><tbody>
+<tr><td>Capability</td><td>Frontier-level, very strong at hard reasoning</td><td>Good, and improving fast, but a model that fits a home GPU is far smaller than a frontier model</td></tr>
+<tr><td>Privacy</td><td>Your text goes to a provider</td><td>Stays on your machine</td></tr>
+<tr><td>Cost</td><td>Subscription or per-token</td><td>Free after hardware and electricity</td></tr>
+<tr><td>Works offline</td><td>No</td><td>Yes</td></tr>
+<tr><td>Limits and rules</td><td>Set by the provider</td><td>You choose the model and settings</td></tr>
+<tr><td>Extras (web search, image generation, file upload)</td><td>Built in</td><td>You add them yourself</td></tr>
+<tr><td>Effort</td><td>None</td><td>Setup and tuning</td></tr>
+</tbody></table></div>
+<div class="box tip"><b>The sensible mindset</b>
+<p>Keep using the cloud assistants for hard problems. Use local models for private data, bulk work, offline use, learning, and the things only open weights allow, such as inspecting and training. You are not replacing one with the other.</p></div>
+
+<div class="quiz"><h3>Check yourself</h3>
+<div class="q" data-correct="1"><p class="qt">What does "open-weight" mean?</p><ol><li>You can download the finished model's weights and run them yourself</li><li>The company published its full training data</li><li>The model is free for any use whatsoever</li></ol><p class="why">Open-weight does not promise training data or unlimited rights. Check the licence.</p></div>
+<div class="q" data-correct="3"><p class="qt">Which is the strongest reason to use a local model for a confidential contract?</p><ol><li>Local models are always smarter</li><li>It is faster than any cloud model</li><li>The text never leaves your computer</li></ol><p class="why">Privacy is a core advantage. Capability on very hard tasks is usually still better in the cloud.</p></div>
+</div>

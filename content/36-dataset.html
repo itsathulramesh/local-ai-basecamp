@@ -1,0 +1,158 @@
+<!-- {"id": "dataset", "module": "9", "title": "Build your training dataset", "minutes": 18, "optional": false} -->
+<p class="lede">Your fine-tune can never be better than its data. A dataset is a specification of behaviour, written as examples. This lesson covers the file format, how many examples you need, where they can come from, and a script that turns your own notes into a clean dataset using your local model as a teacher.</p>
+<div class="goals"><h4>What you will learn</h4><ul>
+<li>Write examples in the chat JSONL format trainers expect</li>
+<li>Judge how much data a goal needs and what "quality" means</li>
+<li>Generate synthetic examples with a local teacher model, then clean and split them</li>
+<li>Produce <code>train.jsonl</code>, <code>valid.jsonl</code> and <code>test.jsonl</code></li>
+</ul></div>
+
+<h2>The format: chat JSONL</h2>
+<p><b>JSONL</b> means one complete JSON object per line. Each line is one example conversation:</p>
+<pre data-lang="json"><code>{"messages": [{"role": "system", "content": "You are my house-style editor."}, {"role": "user", "content": "Rewrite: the meeting got moved cause of the outage"}, {"role": "assistant", "content": "The meeting has been rescheduled because of the outage."}]}</code></pre>
+<p>Use this chat format by default. The trainer renders each example with the model's own chat template (lesson 7.3) and computes the loss only on the assistant's reply. Two other formats exist: <code>{"prompt": ..., "completion": ...}</code> pairs, and <code>{"text": ...}</code> for raw text when you want the model to continue documents (continued pretraining, lesson 9.7).</p>
+<div class="box warn"><b>Watch the length</b>
+<p>Examples longer than the training sequence length get truncated, so the model learns answers that stop mid-sentence. Estimate 1 token ≈ 4 characters and drop or split long examples before training.</p></div>
+
+<h2>How much data?</h2>
+<div class="tw"><table><thead><tr><th>Goal</th><th>Typical size</th></tr></thead><tbody>
+<tr><td>Lock in a format or house style</td><td>100 to 500 examples</td></tr>
+<tr><td>A narrow task skill</td><td>500 to 3,000</td></tr>
+<tr><td>A broad domain assistant</td><td>5,000 and up, mixed with general data</td></tr>
+</tbody></table></div>
+<p>Quality beats quantity. A well-known 2023 study (LIMA) fine-tuned a strong base model on only 1,000 carefully chosen examples and got results that held up against far larger datasets. Every inconsistency in your data is also learned.</p>
+<h3>What quality means</h3>
+<ul>
+<li><b>Correct.</b> Every claim true. If 10% of answers contain an invented fact, the model learns that inventing is part of the job.</li>
+<li><b>Consistent.</b> Same system prompt, same headings, same tone in every example.</li>
+<li><b>Representative.</b> Inputs look like what you will really type.</li>
+<li><b>Diverse.</b> Many topics, lengths and phrasings, so the model learns the pattern, not the instances.</li>
+<li><b>Honest.</b> Include examples where the right answer is "I don't know" or "not enough information".</li>
+</ul>
+
+<h2>Where data can come from</h2>
+<ul>
+<li><b>Your own writing</b>: notes, emails, documents, code you wrote. The best source, because it is your voice.</li>
+<li><b>Openly licensed datasets</b> on Hugging Face. Check each licence. Some forbid commercial use.</li>
+<li><b>Synthetic data</b> drafted by a model and reviewed by you.</li>
+<li><b>Never</b> other people's private data, credentials, client documents, or a benchmark you plan to evaluate on. Training on your test set makes your scores meaningless.</li>
+</ul>
+<div class="box warn"><b>Teacher models and terms of service</b>
+<p>If a cloud model (OpenAI, Anthropic, Google) drafts your examples, check its current terms. Several providers restrict using outputs to build competing models. A local open-weight teacher avoids that question and keeps your data private.</p></div>
+
+<h2>Synthetic data with a local teacher</h2>
+<p>The <b>teacher</b> writes examples; the <b>student</b> is the model you train. The safest pattern with a small local teacher is <b>grounded generation</b>: give it a chunk of <i>your</i> text and ask for question-and-answer pairs whose facts come only from that chunk. Your text supplies correctness. The model supplies phrasing and variety. LM Studio can force the reply into an exact JSON shape (structured output), which makes parsing reliable.</p>
+
+<h2>The script: make_dataset.py</h2>
+<p>Put your notes as <code>.md</code> or <code>.txt</code> files in <code>ai-lab\finetune\notes</code>. Start LM Studio's server with a capable model loaded (lesson 6.2). Edit <code>SYSTEM</code> and <code>STYLE</code>, then run.</p>
+<pre data-lang="python"><code>"""Turn your notes into chat-format train/valid/test JSONL using a local teacher model."""
+import argparse, hashlib, json, pathlib, random, re
+from openai import OpenAI
+
+SYSTEM = "You are a helpful assistant that answers in my personal style."   # the prompt your fine-tune will use
+STYLE = "Answer clearly in 2-5 sentences, plain English, no bullet lists."   # how answers should read
+SCHEMA = {"type": "object", "properties": {"pairs": {"type": "array", "items": {
+    "type": "object", "properties": {"question": {"type": "string"}, "answer": {"type": "string"}},
+    "required": ["question", "answer"]}}}, "required": ["pairs"]}
+SECRETS = [r"-----BEGIN [A-Z ]*PRIVATE KEY-----", r"AKIA[0-9A-Z]{16}", r"eyJ[\w-]+\.[\w-]+\.[\w-]+",
+           r"(?i)(password|api[_-]?key|token)\s*[:=]\s*\S+", r"[\w.+-]+@[\w-]+\.[\w.]+"]
+
+
+def chunks(text, size=2500):
+    buf = ""
+    for para in re.split(r"\n\s*\n", text):
+        if len(buf) + len(para) > size and buf:
+            yield buf
+            buf = ""
+        buf += para + "\n\n"
+    if buf.strip():
+        yield buf
+
+
+def scrub(s):
+    for pat in SECRETS:
+        s = re.sub(pat, "[REDACTED]", s)
+    return s
+
+
+def main():
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--notes", default="notes")
+    ap.add_argument("--out", default="data")
+    ap.add_argument("--model", default="local-model")
+    ap.add_argument("--per-chunk", type=int, default=4)
+    a = ap.parse_args()
+    client = OpenAI(base_url="http://localhost:1234/v1", api_key="lm-studio")
+    by_source, seen = {}, set()
+    for f in sorted(pathlib.Path(a.notes).glob("*.*")):
+        if f.suffix.lower() not in {".md", ".txt"}:
+            continue
+        for chunk in chunks(scrub(f.read_text(encoding="utf-8", errors="ignore"))):
+            prompt = (f"From the text below, write {a.per_chunk} varied question-and-answer pairs. "
+                      f"Use ONLY facts stated in the text. {STYLE}\n\nTEXT:\n\"\"\"\n{chunk}\n\"\"\"")
+            r = client.chat.completions.create(
+                model=a.model, temperature=0.7,
+                messages=[{"role": "user", "content": prompt}],
+                response_format={"type": "json_schema", "json_schema": {"name": "qa", "schema": SCHEMA}})
+            try:
+                pairs = json.loads(r.choices[0].message.content)["pairs"]
+            except (json.JSONDecodeError, KeyError, TypeError):
+                continue
+            for p in pairs:
+                q, ans = scrub(p["question"].strip()), scrub(p["answer"].strip())
+                key = hashlib.md5(re.sub(r"\W+", " ", q.lower()).encode()).hexdigest()
+                if len(ans) < 40 or len(q) < 10 or key in seen:
+                    continue
+                seen.add(key)
+                by_source.setdefault(f.name, []).append({"messages": [
+                    {"role": "system", "content": SYSTEM},
+                    {"role": "user", "content": q},
+                    {"role": "assistant", "content": ans}], "source": f.name})
+        print(f"{f.name}: {len(by_source.get(f.name, []))} examples")
+
+    sources = list(by_source)
+    random.Random(0).shuffle(sources)
+    n = len(sources)
+    split = {"test": sources[:max(1, n // 10)], "valid": sources[max(1, n // 10):max(2, n // 5)]}
+    split["train"] = [s for s in sources if s not in split["test"] + split["valid"]]
+    out = pathlib.Path(a.out)
+    out.mkdir(exist_ok=True)
+    for name, srcs in split.items():
+        rows = [r for s in srcs for r in by_source[s]]
+        with open(out / f"{name}.jsonl", "w", encoding="utf-8") as fh:
+            for r in rows:
+                fh.write(json.dumps(r, ensure_ascii=False) + "\n")
+        print(f"{name}: {len(rows)} examples from {len(srcs)} files")
+
+
+if __name__ == "__main__":
+    main()</code></pre>
+<pre data-lang="powershell"><code>cd $HOME\ai-lab\finetune
+python make_dataset.py --notes notes --out data --model "the-model-id-from-LM-Studio"</code></pre>
+
+<h2>Clean before you train</h2>
+<ol>
+<li><b>Validate.</b> Every line parses, every example has system, user and assistant.</li>
+<li><b>Filter lengths.</b> The script drops very short answers. Also drop ones too long for your sequence length.</li>
+<li><b>Scrub secrets and personal data.</b> The script catches common patterns. Add your own names and domains.</li>
+<li><b>Deduplicate.</b> Duplicates silently over-weight one example.</li>
+<li><b>Make the style consistent.</b> One system prompt, one tone.</li>
+<li><b>Read at least 30 to 50 random examples yourself.</b> Fix or delete bad ones. Nothing replaces this.</li>
+</ol>
+
+<h2>Splits and leakage</h2>
+<p>The script splits <b>by source file</b>, about 80/10/10. If one document produced ten examples and they landed in both train and test, your test would measure memorisation, not skill. <code>valid.jsonl</code> is checked during training to spot overfitting. <code>test.jsonl</code> is touched only once, at the end (lesson 9.5).</p>
+
+<div class="box tip"><b>Lab</b>
+<ol>
+<li>Collect 10 to 30 documents of your own writing into <code>notes</code>.</li>
+<li>Run the script and open <code>train.jsonl</code> in VS Code.</li>
+<li>Review 30 examples. Delete anything wrong. Note what the teacher got wrong most often and adjust <code>STYLE</code>.</li>
+<li>Aim for at least 200 good training examples before moving on.</li>
+</ol></div>
+
+<div class="quiz"><h3>Check yourself</h3>
+<div class="q" data-correct="1"><p class="qt">Why split by source document rather than by example?</p><ol><li>To stop near-identical examples from one document leaking into the test set</li><li>To make training faster</li><li>Because trainers require it</li></ol><p class="why">Leakage makes the test measure memorisation instead of skill.</p></div>
+<div class="q" data-correct="3"><p class="qt">What does grounded generation protect against?</p><ol><li>Slow training</li><li>Large files</li><li>The teacher inventing facts, since facts must come from your supplied text</li></ol><p class="why">Your text supplies correctness. The model only phrases it.</p></div>
+<div class="q" data-correct="2"><p class="qt">500 examples, 50 of which contain wrong facts. What does the model learn?</p><ol><li>To ignore the wrong ones automatically</li><li>That stating wrong facts confidently is part of the job</li><li>Nothing, the dataset is too small</li></ol><p class="why">Everything in the data is learned, including mistakes.</p></div>
+</div>

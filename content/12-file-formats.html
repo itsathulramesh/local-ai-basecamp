@@ -1,0 +1,49 @@
+<!-- {"id": "file-formats", "module": "3", "title": "Model file formats: GGUF, safetensors and friends", "minutes": 9, "optional": false} -->
+<p class="lede">On a model download page you will see several file types. Picking the wrong one is a common beginner stumble, and some formats carry a real security risk.</p>
+<div class="goals"><h4>What you will learn</h4><ul>
+<li>Tell GGUF, safetensors and pickle-based files apart</li>
+<li>Know which format your tools expect</li>
+<li>Understand why safetensors and GGUF are safer than older formats</li>
+<li>Read a model's file list on Hugging Face</li>
+</ul></div>
+
+<h2>The main formats</h2>
+<div class="tw"><table><thead><tr><th>Format</th><th>What it is</th><th>Used by</th></tr></thead><tbody>
+<tr><td><b>GGUF</b> (<code>.gguf</code>)</td><td>One self-contained file with weights, tokenizer and settings, designed for quantized local inference</td><td>LM Studio, Ollama, llama.cpp</td></tr>
+<tr><td><b>safetensors</b> (<code>.safetensors</code>)</td><td>A safe, fast file of raw tensors, often split into several shards, plus separate config and tokenizer files</td><td>Hugging Face Transformers, PyTorch, fine-tuning tools, vLLM</td></tr>
+<tr><td><b>PyTorch checkpoints</b> (<code>.bin</code>, <code>.pt</code>, <code>.pth</code>)</td><td>Python "pickle" files. Older, and can execute code when loaded.</td><td>Legacy models</td></tr>
+<tr><td>AWQ / GPTQ / EXL2</td><td>Other quantization styles for GPU-only servers</td><td>vLLM, ExLlama and similar</td></tr>
+</tbody></table></div>
+
+<div class="box concept"><b>Concept: pick by purpose</b>
+<p>To <b>run</b> a model in LM Studio or Ollama, download a <b>GGUF</b>. To <b>train</b> or <b>modify</b> a model, you want the original <b>safetensors</b> version. You will use both in module 9. A GGUF is what you get at the end of fine-tuning, after converting.</p></div>
+
+<h2>Why safety differs</h2>
+<p>Pickle-based files (<code>.bin</code>, <code>.pt</code>) are Python objects. Loading them can run arbitrary code hidden inside. A downloaded checkpoint from an untrusted source is therefore like running an unknown program. <b>Safetensors</b> and <b>GGUF</b> are plain data formats designed so that loading does not execute code. That is a big reason the community moved to them.</p>
+<div class="box warn"><b>Safe habits</b>
+<ul>
+<li>Prefer GGUF and safetensors. Be suspicious of <code>.bin</code>, <code>.pt</code> and <code>.pkl</code> files from unknown publishers.</li>
+<li>Download from the model's real publisher, or from well-known community uploaders with many downloads and an active discussion page.</li>
+<li>Check that the model card names its base model and licence.</li>
+<li>Never run an installer, script or "launcher" that comes bundled with a model. Weights are data and need nothing like that.</li>
+</ul></div>
+
+<h2>Reading a Hugging Face file list</h2>
+<p>A GGUF repository typically lists the same model in many sizes:</p>
+<pre data-lang="text"><code>Qwen-example-9B-Q4_K_M.gguf     5.6 GB
+Qwen-example-9B-Q6_K.gguf       7.4 GB
+Qwen-example-9B-Q8_0.gguf       9.5 GB
+mmproj-F16.gguf                 0.9 GB   (vision add-on, only for image input)
+</code></pre>
+<p>You pick one quantization file, not all of them. If you see an <code>mmproj</code> file, that is the part that lets a vision-capable model look at images. Tools like LM Studio fetch it automatically if needed.</p>
+
+<h2>Two more things you will see</h2>
+<ul>
+<li><b>Sharded files</b> such as <code>model-00001-of-00004.safetensors</code> are one model split into parts. Download all parts. Tools do it for you.</li>
+<li><b>Base vs instruct</b> in the name. "-Instruct" or "-it" models follow instructions. Base models only continue text. For chatting, always pick the instruct or chat version.</li>
+</ul>
+
+<div class="quiz"><h3>Check yourself</h3>
+<div class="q" data-correct="1"><p class="qt">Which file do you download to chat with a model in LM Studio?</p><ol><li>A GGUF file</li><li>A <code>.pt</code> checkpoint</li><li>A zip of Python scripts</li></ol><p class="why">LM Studio runs GGUF models via llama.cpp.</p></div>
+<div class="q" data-correct="3"><p class="qt">Why is a <code>.bin</code> pickle checkpoint from a stranger risky?</p><ol><li>It is always corrupted</li><li>It is too large</li><li>Loading it can execute hidden code</li></ol><p class="why">Pickle can run arbitrary code. Safetensors and GGUF cannot do that by design.</p></div>
+</div>

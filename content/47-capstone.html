@@ -1,0 +1,61 @@
+<!-- {"id": "capstone", "module": "11", "title": "Capstone: build your own model, end to end", "minutes": 15, "optional": false} -->
+<p class="lede">Time to prove it. In this project you build a model that is genuinely yours: trained on your data, in your style, free of the refusals that get in your way, packaged and served on your own PC. Each step points to the lesson that taught it.</p>
+<div class="goals"><h4>What you will deliver</h4><ul>
+<li>A written spec and a reviewed dataset</li>
+<li>A trained LoRA, evaluated against the base model</li>
+<li>An uncensored variant made by one of the routes in lesson 10.4</li>
+<li>A named custom model in Ollama and LM Studio, called from a Python script</li>
+</ul></div>
+
+<h2>Pick a project</h2>
+<p>Choose something you will actually use. Good first projects:</p>
+<ul>
+<li><b>Your writing twin</b>: rewrites drafts in your tone and format.</li>
+<li><b>A domain explainer</b>: explains your field in plain English in a consistent structure, without hedging.</li>
+<li><b>A strict formatter</b>: turns messy notes into a fixed JSON or report structure every time.</li>
+<li><b>A fiction partner</b>: writes in a chosen style without over-refusing dark themes.</li>
+</ul>
+
+<h2>Step 1: write the spec (30 minutes)</h2>
+<p>One page in <code>NOTES.md</code>: what the model does, what a perfect answer looks like (write three), what it must never do, which base model and size fits your GPU (lesson 9.1), and how you will judge success (lesson 9.5).</p>
+
+<h2>Step 2: baseline (1 hour)</h2>
+<p>Before training anything, try the cheaper rungs (lesson 8.1). Write the best system prompt you can, make a Modelfile (lesson 8.2), and score the base model on 20 test prompts. This is the bar your fine-tune must beat. If the prompt alone is good enough, you have learned something valuable cheaply.</p>
+
+<h2>Step 3: dataset (an evening or two)</h2>
+<p>Use <code>make_dataset.py</code> (lesson 9.2) on your own documents, then review by hand. Target 300 or more training examples. If your domain is over-refused, include direct, complete answers for those requests (route 3 in lesson 10.4). Keep 10% aside as test data.</p>
+
+<h2>Step 4: train (1 to 3 hours)</h2>
+<p>Run <code>train_lora.py</code> in WSL2 (lessons 9.3 and 9.4). Do one quick run on a small model or a subset first to check the pipeline. Keep a run log: settings, losses, verdict.</p>
+
+<h2>Step 5: evaluate (1 hour)</h2>
+<p>Blind A/B against the baseline on the test set, plus the regression set (lesson 9.5). If it does not clearly win, fix the data before changing hyperparameters. Data is almost always the problem.</p>
+
+<h2>Step 6: uncensor (1 to 3 hours)</h2>
+<p>Pick a route from lesson 10.4. Route 1 if a suitable abliterated safetensors base exists, route 2 if you want to do the abliteration yourself with <code>ablate.py</code> (lesson 10.3). Measure the refusal rate on held-out legitimate prompts and rerun the regression set.</p>
+
+<h2>Step 7: package and serve (30 minutes)</h2>
+<ol>
+<li>Export to GGUF and check the template (lesson 9.6).</li>
+<li>Make a Modelfile with your system prompt and settings, then <code>ollama create</code> (lesson 8.2).</li>
+<li>Import into LM Studio with a preset.</li>
+<li>Call it from <code>ask.py</code> (lesson 6.2).</li>
+</ol>
+
+<h2>Step 8: write it up</h2>
+<p>A short model card in your <code>ai-lab</code> folder: base model and licence, data sources, training settings, evaluation results, uncensoring method, known weaknesses. This habit is what separates experiments from engineering.</p>
+
+<h2>Capstone checklist</h2>
+<label class="ck"><input type="checkbox" data-k="cap-1"><span>Spec written, with three perfect example answers</span></label>
+<label class="ck"><input type="checkbox" data-k="cap-2"><span>Prompt-only baseline scored on 20 test prompts</span></label>
+<label class="ck"><input type="checkbox" data-k="cap-3"><span>300+ reviewed training examples, split by source</span></label>
+<label class="ck"><input type="checkbox" data-k="cap-4"><span>LoRA trained with a run log</span></label>
+<label class="ck"><input type="checkbox" data-k="cap-5"><span>Blind A/B win over the baseline, regression set holds</span></label>
+<label class="ck"><input type="checkbox" data-k="cap-6"><span>Uncensored variant made and measured (refusals and quality)</span></label>
+<label class="ck"><input type="checkbox" data-k="cap-7"><span>GGUF exported, template verified, running in Ollama and LM Studio</span></label>
+<label class="ck"><input type="checkbox" data-k="cap-8"><span>Called from a Python script</span></label>
+<label class="ck"><input type="checkbox" data-k="cap-9"><span>Model card written</span></label>
+<p></p>
+
+<div class="box tip"><b>If it does not beat the baseline</b>
+<p>That is a normal first result. Read 20 training examples critically, fix inconsistencies, add variety, and retrain with the same settings. Change hyperparameters only after the data is good.</p></div>

@@ -1,0 +1,67 @@
+[
+ {
+  "k": "0",
+  "name": "Start here",
+  "blurb": "How the course works, the milestones, and what to do on day one."
+ },
+ {
+  "k": "1",
+  "name": "AI in plain English",
+  "blurb": "Models, tokens, context and the difference between cloud and local."
+ },
+ {
+  "k": "2",
+  "name": "Your PC",
+  "blurb": "CPU, RAM, GPU and VRAM. Drivers, Python and what your PC can run."
+ },
+ {
+  "k": "3",
+  "name": "Model files and the memory math",
+  "blurb": "Quantization, GGUF, and calculators for whether a model fits and how fast it runs."
+ },
+ {
+  "k": "4",
+  "name": "Run your first models",
+  "blurb": "LM Studio, Ollama, Hugging Face, settings and troubleshooting."
+ },
+ {
+  "k": "5",
+  "name": "Aligned vs uncensored models",
+  "blurb": "How alignment works, what uncensored really means, and how to handle it safely."
+ },
+ {
+  "k": "6",
+  "name": "Use it for real",
+  "blurb": "Prompting, the local API, RAG over your documents, tools and hygiene."
+ },
+ {
+  "k": "7",
+  "name": "How models really work",
+  "blurb": "Gradient descent by hand, the transformer, chat templates and generation."
+ },
+ {
+  "k": "8",
+  "name": "Customize without training",
+  "blurb": "The customization ladder, Modelfiles, presets and adapters."
+ },
+ {
+  "k": "9",
+  "name": "Fine-tune your own model",
+  "blurb": "LoRA, datasets, Unsloth on your GPU, evaluation, GGUF export and beyond."
+ },
+ {
+  "k": "10",
+  "name": "Uncensor and edit models",
+  "blurb": "Directions, steering, ablation and abliteration, uncensored fine-tunes, merging."
+ },
+ {
+  "k": "11",
+  "name": "Capstone",
+  "blurb": "Build your own custom, uncensored model end to end, and where to go next."
+ },
+ {
+  "k": "R",
+  "name": "Reference",
+  "blurb": "The 8-week plan, cheatsheet, glossary and reading list."
+ }
+]

@@ -1,0 +1,40 @@
+<!-- {"id": "speed", "module": "3", "title": "Speed: tokens per second and what limits it", "minutes": 9, "optional": false} -->
+<p class="lede">Two models can both fit and still feel completely different to use. Speed comes from memory bandwidth and model size, and you can estimate it before you download anything.</p>
+<div class="goals"><h4>What you will learn</h4><ul>
+<li>Distinguish prompt processing speed from generation speed</li>
+<li>Estimate tokens per second from bandwidth and model size</li>
+<li>Understand why mixture-of-experts models feel fast</li>
+<li>Know what "good" speed feels like</li>
+</ul></div>
+
+<h2>Two speeds</h2>
+<ul>
+<li><b>Prompt processing</b> (also called prefill or time to first token): reading your whole prompt. It is compute-heavy and fast on a GPU, usually hundreds to thousands of tokens per second.</li>
+<li><b>Generation</b> (decoding): producing the answer one token at a time. This is what "tokens per second" usually means, and it is limited by memory bandwidth.</li>
+</ul>
+
+<h2>The ceiling formula</h2>
+<div class="box concept"><b>Concept: bandwidth ÷ model size</b>
+<p>Generating one token reads all the active weights once. So tokens per second can never exceed memory bandwidth divided by the size of the weights read. A card with 500 GB/s running a 5 GB model has a ceiling of about 100 tokens per second. Real speed is usually 55 to 75% of that.</p></div>
+<div class="widget" data-widget="speed"></div>
+
+<h2>Why mixture-of-experts feels fast</h2>
+<p>A 35B-A3B model reads only about 3 billion active parameters per token, so its per-token cost resembles a 3B model while its answers resemble a much larger one. The price is that all 35B must still be stored. On a 24 GB card that is a great trade.</p>
+
+<h2>What is "fast enough"?</h2>
+<div class="tw"><table><thead><tr><th>Tokens per second</th><th>Feel</th></tr></thead><tbody>
+<tr><td>Under 5</td><td>Painful. Usually a sign of CPU spill.</td></tr>
+<tr><td>5 to 15</td><td>About reading speed. Usable for short answers.</td></tr>
+<tr><td>20 to 40</td><td>Comfortable for chat</td></tr>
+<tr><td>50 and above</td><td>Feels instant. Great for agents and bulk jobs.</td></tr>
+</tbody></table></div>
+<div class="box warn"><b>Thinking models are slower than their speed suggests</b>
+<p>Reasoning models write a long hidden chain of thought before the answer. At 30 tokens per second, 2,000 tokens of thinking is over a minute. You can usually shorten or disable thinking in the settings.</p></div>
+
+<h3>Measure your own</h3>
+<p>LM Studio shows tokens per second under each reply, and Ollama prints it with <code>ollama run MODEL --verbose</code>. Record it in your notes next to the model, quantization and context length. Over the weeks you will build a personal table of what your PC does.</p>
+
+<div class="quiz"><h3>Check yourself</h3>
+<div class="q" data-correct="1"><p class="qt">A GPU has 1,000 GB/s bandwidth and the model weights are 10 GB. What is the speed ceiling?</p><ol><li>About 100 tokens per second</li><li>About 10,000 tokens per second</li><li>About 10 tokens per second</li></ol><p class="why">1,000 ÷ 10 = 100. Real speed will be somewhat lower.</p></div>
+<div class="q" data-correct="2"><p class="qt">Why is a 30B-A3B mixture-of-experts model usually much faster than a 30B dense model?</p><ol><li>It uses less memory in total</li><li>It reads only the active experts for each token</li><li>It does not need a GPU</li></ol><p class="why">Total memory is the same or larger, but per-token reads are small.</p></div>
+</div>

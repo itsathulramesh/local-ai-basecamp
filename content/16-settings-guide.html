@@ -1,0 +1,67 @@
+<!-- {"id": "settings-guide", "module": "4", "title": "Settings that matter: load options and sampling", "minutes": 16, "optional": false} -->
+<p class="lede">The settings panel looks intimidating until you notice that it has two halves: how the model is <i>loaded</i> into memory, and how the next word is <i>chosen</i>. Learn both and you can tune any model.</p>
+<div class="goals"><h4>What you will learn</h4><ul>
+<li>Explain every important load setting and when to change it</li>
+<li>Explain temperature, top-k, top-p and min-p, and see their effect</li>
+<li>Choose sensible starting values for different tasks</li>
+</ul></div>
+
+<div class="box warn"><b>Names can differ by version</b>
+<p>LM Studio and Ollama rename and reorganise settings from time to time. The ideas below stay the same.</p></div>
+
+<h2>Part 1: load settings (how the model sits in memory)</h2>
+<div class="tw"><table><thead><tr><th>Setting</th><th>What it does</th><th>Guidance</th></tr></thead><tbody>
+<tr><td>GPU Offload</td><td>How many model layers go to the GPU</td><td>Max, unless the model does not fit</td></tr>
+<tr><td>Context Length</td><td>Size of the context window</td><td>4K to 8K for chat, more only when you need it</td></tr>
+<tr><td>Flash Attention</td><td>A faster, leaner way to compute attention</td><td>On. Faster and uses less memory.</td></tr>
+<tr><td>K and V Cache Quantization</td><td>Store the KV cache in 8-bit or lower</td><td>8-bit to double your context for a small cost. Needs Flash Attention.</td></tr>
+<tr><td>Keep model in memory</td><td>Do not swap the model out to disk</td><td>On if you have spare RAM</td></tr>
+<tr><td>Try mmap()</td><td>Map the file into memory for fast loading</td><td>Leave default</td></tr>
+<tr><td>CPU Thread Pool Size</td><td>CPU threads used for any CPU work</td><td>Default is fine when fully on GPU</td></tr>
+<tr><td>Offload KV Cache to GPU Memory</td><td>Keep the context cache in VRAM rather than system RAM</td><td>On. Turning it off saves VRAM but slows generation a lot.</td></tr>
+<tr><td>Max Concurrent Predictions</td><td>How many requests the server handles at once; each needs its own share of the cache</td><td>1 for personal use. Raise it only for apps sending parallel requests.</td></tr>
+<tr><td>Evaluation Batch Size</td><td>How many prompt tokens are processed per chunk during prefill</td><td>Default. Larger can speed up long prompts but uses more memory.</td></tr>
+<tr><td>RoPE Frequency Base / Scale</td><td>Stretches position encoding to exceed the trained context</td><td>Leave on auto. Manual values usually hurt quality.</td></tr>
+<tr><td>Seed</td><td>Fixes the random choices during sampling</td><td>Set a number when comparing settings so runs are repeatable</td></tr>
+<tr><td>Number of Experts (MoE)</td><td>Experts activated per token</td><td>Leave default</td></tr>
+</tbody></table></div>
+
+<h2>Part 2: sampling (how the next word is chosen)</h2>
+<p>Remember that the model outputs a score for every possible next token. Sampling is the rule that turns those scores into a pick. If you always chose the top token the writing would be flat and repetitive. A little randomness makes it natural.</p>
+<h3>Temperature</h3>
+<p>Temperature scales the scores before they become probabilities. Low temperature sharpens the differences, so the top choice dominates. High temperature flattens them, so unlikely words get a real chance. At zero the model is deterministic.</p>
+<h3>Top-k, top-p and min-p</h3>
+<p>These trim the list of candidates before picking:</p>
+<ul>
+<li><b>Top-k</b> keeps only the k most likely tokens.</li>
+<li><b>Top-p</b> (nucleus) keeps the smallest set of tokens whose probabilities add up to p, for example 0.9.</li>
+<li><b>Min-p</b> removes tokens whose probability is below a fraction of the best token's. It adapts nicely to how confident the model is.</li>
+</ul>
+<div class="widget" data-widget="sampling"></div>
+
+<h3>Starting values</h3>
+<div class="tw"><table><thead><tr><th>Task</th><th>Temperature</th><th>Others</th></tr></thead><tbody>
+<tr><td>Facts, extraction, code, data tasks</td><td>0 to 0.3</td><td>Defaults are fine</td></tr>
+<tr><td>General chat and Q&amp;A</td><td>0.6 to 0.8</td><td>Top-p 0.9 to 0.95</td></tr>
+<tr><td>Creative writing and brainstorming</td><td>0.9 to 1.1</td><td>Min-p 0.05</td></tr>
+</tbody></table></div>
+<div class="box tip"><b>Use the model card</b>
+<p>Many model authors publish recommended sampling values on the model's page (some thinking models especially). Start there, since they tested those values.</p></div>
+
+<h2>Repeat penalty</h2>
+<p>Discourages the model from repeating the same words. A small value (around 1.05 to 1.1) fixes loops. Large values make the text strange.</p>
+
+<h2>System prompt</h2>
+<p>The system prompt is an instruction the model sees before the conversation: its role, tone and rules. It is part of the context, so a long system prompt costs context length. Keep it short and specific.</p>
+
+<h2>Presets</h2>
+<p>Once you find values you like, save them as a <b>preset</b> in LM Studio. Make one per use: "precise", "chat", "creative". Switching presets is faster than retyping.</p>
+
+<div class="box concept"><b>Concept: change one knob at a time</b>
+<p>Ask the same question five times at each setting and watch what changes. Log it in your notes. This habit is what separates tuning from guessing.</p></div>
+
+<div class="quiz"><h3>Check yourself</h3>
+<div class="q" data-correct="2"><p class="qt">You need the model to extract the same fields from a thousand invoices reliably. Which temperature?</p><ol><li>1.2</li><li>0 to 0.3</li><li>2.0</li></ol><p class="why">Extraction wants consistency. Low temperature picks the most likely answer.</p></div>
+<div class="q" data-correct="1"><p class="qt">What does a higher temperature do?</p><ol><li>Flattens probabilities, giving unlikely tokens a bigger chance</li><li>Makes the model run hotter</li><li>Makes the context longer</li></ol><p class="why">Temperature reshapes the probability distribution.</p></div>
+<div class="q" data-correct="3"><p class="qt">Which setting increases how much context fits in the same VRAM?</p><ol><li>Top-k</li><li>Repeat penalty</li><li>KV cache quantization</li></ol><p class="why">An 8-bit cache is about half the size of a 16-bit one.</p></div>
+</div>

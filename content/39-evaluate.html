@@ -1,0 +1,87 @@
+<!-- {"id": "evaluate", "module": "9", "title": "Evaluate your fine-tune honestly", "minutes": 13, "optional": false} -->
+<p class="lede">A falling loss proves the model learned your training data. It does not prove the model got better at the job, or that it did not get worse at everything else. This lesson builds a small, honest evaluation you can run in minutes.</p>
+<div class="goals"><h4>What you will learn</h4><ul>
+<li>Compare base and fine-tuned models on held-out examples</li>
+<li>Run a blind A/B test where you are the judge</li>
+<li>Check for forgetting with a regression set</li>
+<li>Use automatic checks and an LLM judge carefully</li>
+</ul></div>
+
+<h2>Four kinds of check</h2>
+<div class="tw"><table><thead><tr><th>Check</th><th>Measures</th><th>Cost</th></tr></thead><tbody>
+<tr><td>Automatic checks</td><td>Format: valid JSON, required keys, length limits, banned phrases</td><td>Free and instant</td></tr>
+<tr><td>Blind A/B by you</td><td>"Which answer is better?" with model names hidden</td><td>Your time. The gold standard.</td></tr>
+<tr><td>LLM as judge</td><td>A strong model scores answers against a rubric</td><td>Cheap, but biased (it favours longer answers and its own style)</td></tr>
+<tr><td>Regression set</td><td>Did general ability survive? 20 to 30 unrelated questions</td><td>Minutes</td></tr>
+</tbody></table></div>
+
+<h2>Serve both models</h2>
+<p>Import the base model's GGUF and your fine-tune's GGUF into Ollama (lesson 8.2), for example as <code>base</code> and <code>mine</code>. Use the same quantization for both so quantization does not bias the comparison.</p>
+
+<h2>The script: ab_eval.py</h2>
+<pre data-lang="python"><code>"""Blind A/B test of two models on test.jsonl, plus optional automatic checks."""
+import json, random, sys
+from openai import OpenAI
+
+client = OpenAI(base_url="http://localhost:11434/v1", api_key="ollama")
+A, B = "base", "mine"
+rows = [json.loads(l) for l in open("data/test.jsonl", encoding="utf-8")][:20]
+
+
+def ask(model, messages):
+    r = client.chat.completions.create(model=model, messages=messages, temperature=0.2, max_tokens=600)
+    return r.choices[0].message.content.strip()
+
+
+def auto_check(text):
+    """Edit for your task: return a list of problems."""
+    problems = []
+    if len(text) > 1500:
+        problems.append("too long")
+    return problems
+
+
+score = {A: 0, B: 0, "tie": 0}
+for i, row in enumerate(rows, 1):
+    prompt = [m for m in row["messages"] if m["role"] != "assistant"]
+    answers = [(A, ask(A, prompt)), (B, ask(B, prompt))]
+    random.shuffle(answers)                      # hide which model is which
+    print(f"\n===== {i}/{len(rows)}  QUESTION =====\n{prompt[-1]['content']}")
+    print(f"\n----- reference answer -----\n{row['messages'][-1]['content']}")
+    for k, (_, text) in enumerate(answers, 1):
+        print(f"\n----- answer {k}  {auto_check(text)} -----\n{text}")
+    pick = input("\nBetter answer? [1/2/t] ").strip().lower()
+    winner = "tie" if pick == "t" else answers[int(pick) - 1][0] if pick in {"1", "2"} else "tie"
+    score[winner] += 1
+print("\nRESULT:", score)</code></pre>
+<p>Run it on Windows with the <code>openai</code> package installed. Do not peek at which is which until the end.</p>
+
+<h2>How much difference is real?</h2>
+<p>With 20 questions, 11 to 9 is a coin flip. 16 to 4 is a real signal. If the result is close, add more questions before deciding. Small differences on small test sets are mostly noise.</p>
+
+<h2>The regression set</h2>
+<p>Write 20 to 30 questions unrelated to your fine-tune: explain a concept, write a short Python function, summarise a paragraph, simple arithmetic, a question it should say "I don't know" to. Run both models. A clear drop on these means <b>catastrophic forgetting</b> (lesson 9.1): fewer epochs, a lower learning rate, or mix general examples into your data.</p>
+
+<h2>Signs of overfitting in the answers</h2>
+<ul>
+<li>It copies phrases or whole answers from the training data.</li>
+<li>Every answer has the same length and opening, even when that does not fit.</li>
+<li>It applies your format to questions where it makes no sense.</li>
+<li>It invents details in the confident style of your training answers.</li>
+</ul>
+
+<h2>LLM as judge, carefully</h2>
+<p>For larger test sets you can ask a strong model to grade answers against a short rubric ("correct, follows the format, no invented facts, 1 to 5"). Shuffle answer order, hide model names, and spot-check its judgements against your own on 10 examples. If you use a cloud model as the judge, remember that your test data is sent to it.</p>
+
+<div class="box tip"><b>Lab</b>
+<ol>
+<li>Import base and fine-tuned GGUFs into Ollama with identical quantization.</li>
+<li>Run <code>ab_eval.py</code> on 20 test examples. Record the score.</li>
+<li>Run your regression set on both.</li>
+<li>Write a three-line verdict in your notes: better at the task? worse at anything? keep or retrain?</li>
+</ol></div>
+
+<div class="quiz"><h3>Check yourself</h3>
+<div class="q" data-correct="2"><p class="qt">Your fine-tune wins 11 to 9 on 20 questions. What can you conclude?</p><ol><li>It is clearly better</li><li>Not much. That is within noise, so test more questions.</li><li>The base model is better</li></ol><p class="why">Small margins on small sets are not reliable evidence.</p></div>
+<div class="q" data-correct="1"><p class="qt">Why hide which answer came from which model?</p><ol><li>So your expectations do not bias your judgement</li><li>To save time</li><li>Ollama requires it</li></ol><p class="why">People favour the model they hope will win. Blinding removes that.</p></div>
+</div>

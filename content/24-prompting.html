@@ -1,0 +1,69 @@
+<!-- {"id": "prompting", "module": "6", "title": "Prompting small local models well", "minutes": 11, "optional": false} -->
+<p class="lede">You already prompt cloud models. Smaller local models need a slightly different approach: clearer, more explicit and more structured. These habits improve results enormously.</p>
+<div class="goals"><h4>What you will learn</h4><ul>
+<li>Write a prompt with role, task, context and format</li>
+<li>Use examples to control style and output</li>
+<li>Ask for step-by-step reasoning when it helps</li>
+<li>Fix common failure patterns</li>
+</ul></div>
+
+<h2>The four-part prompt</h2>
+<div class="tw"><table><thead><tr><th>Part</th><th>Example</th></tr></thead><tbody>
+<tr><td>Role</td><td>You are a careful technical editor.</td></tr>
+<tr><td>Task</td><td>Summarise the text below in five bullet points.</td></tr>
+<tr><td>Context</td><td>The audience is non-technical managers.</td></tr>
+<tr><td>Format</td><td>Return only a numbered list. No introduction.</td></tr>
+</tbody></table></div>
+
+<h2>Habits that help small models</h2>
+<ul>
+<li><b>Be explicit.</b> Smaller models do not infer as much. Say what you want, in what length and shape.</li>
+<li><b>Give one task at a time.</b> Break a big job into steps and feed the results forward.</li>
+<li><b>Show examples.</b> Two or three input-output examples (few-shot prompting) teach the pattern better than a paragraph of description.</li>
+<li><b>Use delimiters.</b> Mark where the document begins and ends so instructions are not confused with content.</li>
+<li><b>Ask for step-by-step thinking</b> on logic and maths: "Work through it step by step, then give the final answer on a new line starting with ANSWER:".</li>
+<li><b>Put instructions last as well.</b> In long prompts, repeat the key instruction after the document.</li>
+<li><b>Lower the temperature</b> for precise tasks.</li>
+</ul>
+
+<h3>A before and after</h3>
+<pre data-lang="text"><code>Weak:   summarize this
+
+Better: You are a careful editor. Summarise the text between the
+        triple quotes in exactly 5 bullet points, each under 20 words.
+        Keep names and numbers exact. Output only the bullets.
+
+        """
+        ...document...
+        """</code></pre>
+
+<h2>Few-shot example</h2>
+<pre data-lang="text"><code>Classify each support email as BILLING, BUG, or OTHER.
+
+Email: "I was charged twice this month."  -> BILLING
+Email: "The export button crashes the app." -> BUG
+Email: "Do you have a student discount?"   -> OTHER
+
+Email: "My invoice shows the wrong company name." -> </code></pre>
+
+<h2>Structured output</h2>
+<p>When code needs to read the answer, ask for JSON and give the exact shape:</p>
+<pre data-lang="text"><code>Return only valid JSON in this shape, with no other text:
+{"sentiment": "positive|neutral|negative", "topics": ["..."], "confidence": 0.0}</code></pre>
+<p>Many tools, including LM Studio and Ollama, can also <b>enforce</b> a JSON schema so the model cannot produce anything else. Lesson 6.5 shows exactly how.</p>
+
+<h2>Common failures and fixes</h2>
+<div class="tw"><table><thead><tr><th>Symptom</th><th>Fix</th></tr></thead><tbody>
+<tr><td>Rambling, long answers</td><td>State a length limit, and say "Output only…"</td></tr>
+<tr><td>Ignores part of the prompt</td><td>Shorten it. Number the requirements.</td></tr>
+<tr><td>Invents facts</td><td>Paste the facts. Add "If the text does not say, answer UNKNOWN."</td></tr>
+<tr><td>Wrong format</td><td>Provide an example of exactly the format</td></tr>
+<tr><td>Inconsistent between runs</td><td>Lower temperature. Add examples.</td></tr>
+</tbody></table></div>
+<div class="box concept"><b>Concept: prompts are programs</b>
+<p>Save your best prompts in files, version them, and test changes on the same ten inputs. That is how professionals do it, and it is the basis for the evaluation work in lesson 9.5.</p></div>
+
+<div class="quiz"><h3>Check yourself</h3>
+<div class="q" data-correct="1"><p class="qt">What most reliably teaches a small model a specific output pattern?</p><ol><li>A few input-output examples in the prompt</li><li>Writing the prompt in capital letters</li><li>Raising the temperature</li></ol><p class="why">Few-shot examples demonstrate the pattern directly.</p></div>
+<div class="q" data-correct="2"><p class="qt">How do you reduce invented facts when summarising a report?</p><ol><li>Ask the model to be creative</li><li>Provide the report text and tell it to answer only from the text</li><li>Increase context length only</li></ol><p class="why">Grounding the model in supplied text and allowing "unknown" cuts hallucination.</p></div>
+</div>

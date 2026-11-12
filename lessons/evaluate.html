@@ -1,0 +1,131 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>9.5 Evaluate your fine-tune honestly · Local AI Basecamp</title>
+<meta name="description" content="A falling loss proves the model learned your training data. It does not prove the model got better at the job, or that it did not get worse at everything else. This lesson builds a small, honest evaluation you can run in minutes.">
+<meta property="og:title" content="9.5 Evaluate your fine-tune honestly · Local AI Basecamp">
+<meta property="og:description" content="A falling loss proves the model learned your training data. It does not prove the model got better at the job, or that it did not get worse at everything else. This lesson builds a small, honest evaluation you can run in minutes.">
+<link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&amp;family=Inter:wght@400;500;600&amp;family=JetBrains+Mono:wght@400;500&amp;display=swap">
+<link rel="stylesheet" href="../assets/css/style.css">
+<script>try{var t=localStorage.getItem('basecamp-theme');if(t==='light'||t==='dark')document.documentElement.setAttribute('data-theme',t)}catch(e){}</script>
+</head>
+<body data-root="../" data-page="evaluate">
+<a class="skip" href="#view">Skip to content</a>
+<div class="app">
+  <aside class="rail" id="rail" aria-label="Course map">
+    <a class="brand" href="../index.html"><span class="brand-mark"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 20 10 7l4 6 2-3 5 10z"/></svg></span><span><b>Local AI Basecamp</b><small>from zero to your own model</small></span></a>
+    <div class="prog"><div class="row"><span id="progText">Core lessons</span><span id="progPct"></span></div><div class="meter"><i id="progBar"></i></div></div>
+    <nav id="nav"><div class="mod" data-m="0"><button class="mod-h" type="button" aria-expanded="false"><svg class="chev" width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M4 2l4 4-4 4"/></svg><span class="n"></span><span>Start here</span><span class="c" data-count="0"></span></button><ul><li data-id="welcome"><a href="../lessons/welcome.html"><span class="dot"></span><span>Welcome and how to use this course</span></a></li></ul></div><div class="mod" data-m="1"><button class="mod-h" type="button" aria-expanded="false"><svg class="chev" width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M4 2l4 4-4 4"/></svg><span class="n">1</span><span>AI in plain English</span><span class="c" data-count="1"></span></button><ul><li data-id="what-is-ai"><a href="../lessons/what-is-ai.html"><span class="dot"></span><span><span class="ln">1.1</span> What AI, machine learning and LLMs actually are</span></a></li><li data-id="open-vs-closed"><a href="../lessons/open-vs-closed.html"><span class="dot"></span><span><span class="ln">1.2</span> Cloud AI vs local AI: closed, open-weight and open-source</span></a></li><li data-id="train-vs-infer"><a href="../lessons/train-vs-infer.html"><span class="dot"></span><span><span class="ln">1.3</span> Training vs inference: what your PC will actually do</span></a></li><li data-id="tokens-context"><a href="../lessons/tokens-context.html"><span class="dot"></span><span><span class="ln">1.4</span> Tokens and the context window (the model&#x27;s memory)</span></a></li><li data-id="why-local"><a href="../lessons/why-local.html"><span class="dot"></span><span><span class="ln">1.5</span> Why run AI locally, and what to expect</span></a></li></ul></div><div class="mod" data-m="2"><button class="mod-h" type="button" aria-expanded="false"><svg class="chev" width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M4 2l4 4-4 4"/></svg><span class="n">2</span><span>Your PC</span><span class="c" data-count="2"></span></button><ul><li data-id="pc-hardware"><a href="../lessons/pc-hardware.html"><span class="dot"></span><span><span class="ln">2.1</span> Your PC: CPU, RAM, GPU and VRAM</span></a></li><li data-id="nvidia-driver"><a href="../lessons/nvidia-driver.html"><span class="dot"></span><span><span class="ln">2.2</span> NVIDIA driver, CUDA and checking that the GPU works</span></a></li><li data-id="windows-dev-setup"><a href="../lessons/windows-dev-setup.html"><span class="dot"></span><span><span class="ln">2.3</span> Windows toolbox: terminal, Python, Git and optional WSL2</span></a></li><li data-id="gpu-tiers"><a href="../lessons/gpu-tiers.html"><span class="dot"></span><span><span class="ln">2.4</span> What your PC can run: the tier map</span></a></li></ul></div><div class="mod" data-m="3"><button class="mod-h" type="button" aria-expanded="false"><svg class="chev" width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M4 2l4 4-4 4"/></svg><span class="n">3</span><span>Model files and the memory math</span><span class="c" data-count="3"></span></button><ul><li data-id="quantization"><a href="../lessons/quantization.html"><span class="dot"></span><span><span class="ln">3.1</span> Parameters, precision and quantization</span></a></li><li data-id="file-formats"><a href="../lessons/file-formats.html"><span class="dot"></span><span><span class="ln">3.2</span> Model file formats: GGUF, safetensors and friends</span></a></li><li data-id="will-it-fit"><a href="../lessons/will-it-fit.html"><span class="dot"></span><span><span class="ln">3.3</span> Will it fit? The VRAM and RAM calculator</span></a></li><li data-id="speed"><a href="../lessons/speed.html"><span class="dot"></span><span><span class="ln">3.4</span> Speed: tokens per second and what limits it</span></a></li></ul></div><div class="mod" data-m="4"><button class="mod-h" type="button" aria-expanded="false"><svg class="chev" width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M4 2l4 4-4 4"/></svg><span class="n">4</span><span>Run your first models</span><span class="c" data-count="4"></span></button><ul><li data-id="lm-studio"><a href="../lessons/lm-studio.html"><span class="dot"></span><span><span class="ln">4.1</span> Your first local model with LM Studio</span></a></li><li data-id="settings-guide"><a href="../lessons/settings-guide.html"><span class="dot"></span><span><span class="ln">4.2</span> Settings that matter: load options and sampling</span></a></li><li data-id="ollama"><a href="../lessons/ollama.html"><span class="dot"></span><span><span class="ln">4.3</span> Ollama on Windows: command line and server</span></a></li><li data-id="hugging-face"><a href="../lessons/hugging-face.html"><span class="dot"></span><span><span class="ln">4.4</span> Hugging Face: finding and judging models</span></a></li><li data-id="choose-model"><a href="../lessons/choose-model.html"><span class="dot"></span><span><span class="ln">4.5</span> Choosing the right model for the job</span></a></li><li data-id="troubleshooting"><a href="../lessons/troubleshooting.html"><span class="dot"></span><span><span class="ln">4.6</span> Troubleshooting: when it is slow, broken or strange <span class="opt">Optional</span></span></a></li></ul></div><div class="mod" data-m="5"><button class="mod-h" type="button" aria-expanded="false"><svg class="chev" width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M4 2l4 4-4 4"/></svg><span class="n">5</span><span>Aligned vs uncensored models</span><span class="c" data-count="5"></span></button><ul><li data-id="why-refusals"><a href="../lessons/why-refusals.html"><span class="dot"></span><span><span class="ln">5.1</span> Why models refuse: alignment explained</span></a></li><li data-id="what-uncensored"><a href="../lessons/what-uncensored.html"><span class="dot"></span><span><span class="ln">5.2</span> What &quot;uncensored&quot; and &quot;abliterated&quot; models really are</span></a></li><li data-id="uncensored-safely"><a href="../lessons/uncensored-safely.html"><span class="dot"></span><span><span class="ln">5.3</span> Using unrestricted models responsibly and safely</span></a></li></ul></div><div class="mod" data-m="6"><button class="mod-h" type="button" aria-expanded="false"><svg class="chev" width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M4 2l4 4-4 4"/></svg><span class="n">6</span><span>Use it for real</span><span class="c" data-count="6"></span></button><ul><li data-id="prompting"><a href="../lessons/prompting.html"><span class="dot"></span><span><span class="ln">6.1</span> Prompting small local models well</span></a></li><li data-id="local-api"><a href="../lessons/local-api.html"><span class="dot"></span><span><span class="ln">6.2</span> Use your model from Python: the local API</span></a></li><li data-id="memory-rag"><a href="../lessons/memory-rag.html"><span class="dot"></span><span><span class="ln">6.3</span> Memory and RAG: give your model your documents</span></a></li><li data-id="local-security"><a href="../lessons/local-security.html"><span class="dot"></span><span><span class="ln">6.4</span> Privacy, safety and good hygiene for local AI</span></a></li><li data-id="structured-tools"><a href="../lessons/structured-tools.html"><span class="dot"></span><span><span class="ln">6.5</span> Structured output and tool calling</span></a></li></ul></div><div class="mod" data-m="7"><button class="mod-h" type="button" aria-expanded="false"><svg class="chev" width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M4 2l4 4-4 4"/></svg><span class="n">7</span><span>How models really work</span><span class="c" data-count="7"></span></button><ul><li data-id="gradient-descent"><a href="../lessons/gradient-descent.html"><span class="dot"></span><span><span class="ln">7.1</span> How a model learns: gradient descent by hand</span></a></li><li data-id="transformer"><a href="../lessons/transformer.html"><span class="dot"></span><span><span class="ln">7.2</span> Inside the transformer</span></a></li><li data-id="chat-templates"><a href="../lessons/chat-templates.html"><span class="dot"></span><span><span class="ln">7.3</span> Base, instruct, thinking models and chat templates</span></a></li><li data-id="generation"><a href="../lessons/generation.html"><span class="dot"></span><span><span class="ln">7.4</span> How text gets generated, token by token <span class="opt">Optional</span></span></a></li></ul></div><div class="mod" data-m="8"><button class="mod-h" type="button" aria-expanded="false"><svg class="chev" width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M4 2l4 4-4 4"/></svg><span class="n">8</span><span>Customize without training</span><span class="c" data-count="8"></span></button><ul><li data-id="customize-ladder"><a href="../lessons/customize-ladder.html"><span class="dot"></span><span><span class="ln">8.1</span> The customization ladder: choose the right tool</span></a></li><li data-id="modelfiles"><a href="../lessons/modelfiles.html"><span class="dot"></span><span><span class="ln">8.2</span> Custom models with Modelfiles and presets</span></a></li></ul></div><div class="mod open" data-m="9"><button class="mod-h" type="button" aria-expanded="true"><svg class="chev" width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M4 2l4 4-4 4"/></svg><span class="n">9</span><span>Fine-tune your own model</span><span class="c" data-count="9"></span></button><ul><li data-id="training-101"><a href="../lessons/training-101.html"><span class="dot"></span><span><span class="ln">9.1</span> Training 101: LoRA, QLoRA and what fits your GPU</span></a></li><li data-id="dataset"><a href="../lessons/dataset.html"><span class="dot"></span><span><span class="ln">9.2</span> Build your training dataset</span></a></li><li data-id="train-env"><a href="../lessons/train-env.html"><span class="dot"></span><span><span class="ln">9.3</span> Set up your training environment on Windows</span></a></li><li data-id="first-lora"><a href="../lessons/first-lora.html"><span class="dot"></span><span><span class="ln">9.4</span> Train your first LoRA with Unsloth</span></a></li><li data-id="evaluate"><a href="../lessons/evaluate.html" aria-current="page"><span class="dot"></span><span><span class="ln">9.5</span> Evaluate your fine-tune honestly</span></a></li><li data-id="export"><a href="../lessons/export.html"><span class="dot"></span><span><span class="ln">9.6</span> Export: merge, convert to GGUF, run in LM Studio and Ollama</span></a></li><li data-id="beyond-sft"><a href="../lessons/beyond-sft.html"><span class="dot"></span><span><span class="ln">9.7</span> Beyond SFT: DPO, distillation, RL and more <span class="opt">Optional</span></span></a></li></ul></div><div class="mod" data-m="10"><button class="mod-h" type="button" aria-expanded="false"><svg class="chev" width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M4 2l4 4-4 4"/></svg><span class="n">10</span><span>Uncensor and edit models</span><span class="c" data-count="10"></span></button><ul><li data-id="directions"><a href="../lessons/directions.html"><span class="dot"></span><span><span class="ln">10.1</span> Features are directions: interpretability for builders</span></a></li><li data-id="steering"><a href="../lessons/steering.html"><span class="dot"></span><span><span class="ln">10.2</span> Activation steering: change behaviour without training</span></a></li><li data-id="ablation"><a href="../lessons/ablation.html"><span class="dot"></span><span><span class="ln">10.3</span> Direction ablation and abliteration: editing weights</span></a></li><li data-id="uncensored-routes"><a href="../lessons/uncensored-routes.html"><span class="dot"></span><span><span class="ln">10.4</span> Build your own uncensored custom model: five routes</span></a></li><li data-id="editing-merging"><a href="../lessons/editing-merging.html"><span class="dot"></span><span><span class="ln">10.5</span> Knowledge editing and model merging <span class="opt">Optional</span></span></a></li></ul></div><div class="mod" data-m="11"><button class="mod-h" type="button" aria-expanded="false"><svg class="chev" width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M4 2l4 4-4 4"/></svg><span class="n">11</span><span>Capstone</span><span class="c" data-count="11"></span></button><ul><li data-id="capstone"><a href="../lessons/capstone.html"><span class="dot"></span><span><span class="ln">11.1</span> Capstone: build your own model, end to end</span></a></li><li data-id="next-steps"><a href="../lessons/next-steps.html"><span class="dot"></span><span><span class="ln">11.2</span> Where to go next <span class="opt">Optional</span></span></a></li></ul></div><div class="mod" data-m="R"><button class="mod-h" type="button" aria-expanded="false"><svg class="chev" width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M4 2l4 4-4 4"/></svg><span class="n"></span><span>Reference</span><span class="c" data-count="R"></span></button><ul><li data-id="roadmap"><a href="../lessons/roadmap.html"><span class="dot"></span><span>The 8-week learning plan</span></a></li><li data-id="cheatsheet"><a href="../lessons/cheatsheet.html"><span class="dot"></span><span>Command cheatsheet</span></a></li><li data-id="glossary"><a href="../lessons/glossary.html"><span class="dot"></span><span>Glossary</span></a></li><li data-id="resources"><a href="../lessons/resources.html"><span class="dot"></span><span>Resources and reading list</span></a></li></ul></div></nav>
+  </aside>
+  <div class="main">
+    <div class="top">
+      <button class="btn menu-btn" id="menuBtn" type="button" aria-label="Open course map">Menu</button>
+      <button class="btn search-btn" id="searchBtn" type="button" aria-label="Search lessons">Search <kbd>Ctrl K</kbd></button>
+      <span class="grow"></span>
+      <a class="btn hide-s" href="../lessons/roadmap.html">8-week plan</a>
+      <button class="btn" id="themeBtn" type="button" aria-label="Switch colour theme">Theme</button>
+    </div>
+    <main id="view" tabindex="-1">
+<article><div class="crumbs"><span>Fine-tune your own model</span><span class="pill">Lesson 9.5</span><span>13 min</span></div><h1>Evaluate your fine-tune honestly</h1>
+<p class="lede">A falling loss proves the model learned your training data. It does not prove the model got better at the job, or that it did not get worse at everything else. This lesson builds a small, honest evaluation you can run in minutes.</p>
+<div class="goals"><h4>What you will learn</h4><ul>
+<li>Compare base and fine-tuned models on held-out examples</li>
+<li>Run a blind A/B test where you are the judge</li>
+<li>Check for forgetting with a regression set</li>
+<li>Use automatic checks and an LLM judge carefully</li>
+</ul></div>
+
+<h2>Four kinds of check</h2>
+<div class="tw"><table><thead><tr><th>Check</th><th>Measures</th><th>Cost</th></tr></thead><tbody>
+<tr><td>Automatic checks</td><td>Format: valid JSON, required keys, length limits, banned phrases</td><td>Free and instant</td></tr>
+<tr><td>Blind A/B by you</td><td>"Which answer is better?" with model names hidden</td><td>Your time. The gold standard.</td></tr>
+<tr><td>LLM as judge</td><td>A strong model scores answers against a rubric</td><td>Cheap, but biased (it favours longer answers and its own style)</td></tr>
+<tr><td>Regression set</td><td>Did general ability survive? 20 to 30 unrelated questions</td><td>Minutes</td></tr>
+</tbody></table></div>
+
+<h2>Serve both models</h2>
+<p>Import the base model's GGUF and your fine-tune's GGUF into Ollama (lesson 8.2), for example as <code>base</code> and <code>mine</code>. Use the same quantization for both so quantization does not bias the comparison.</p>
+
+<h2>The script: ab_eval.py</h2>
+<pre data-lang="python"><code>"""Blind A/B test of two models on test.jsonl, plus optional automatic checks."""
+import json, random, sys
+from openai import OpenAI
+
+client = OpenAI(base_url="http://localhost:11434/v1", api_key="ollama")
+A, B = "base", "mine"
+rows = [json.loads(l) for l in open("data/test.jsonl", encoding="utf-8")][:20]
+
+
+def ask(model, messages):
+    r = client.chat.completions.create(model=model, messages=messages, temperature=0.2, max_tokens=600)
+    return r.choices[0].message.content.strip()
+
+
+def auto_check(text):
+    """Edit for your task: return a list of problems."""
+    problems = []
+    if len(text) > 1500:
+        problems.append("too long")
+    return problems
+
+
+score = {A: 0, B: 0, "tie": 0}
+for i, row in enumerate(rows, 1):
+    prompt = [m for m in row["messages"] if m["role"] != "assistant"]
+    answers = [(A, ask(A, prompt)), (B, ask(B, prompt))]
+    random.shuffle(answers)                      # hide which model is which
+    print(f"\n===== {i}/{len(rows)}  QUESTION =====\n{prompt[-1]['content']}")
+    print(f"\n----- reference answer -----\n{row['messages'][-1]['content']}")
+    for k, (_, text) in enumerate(answers, 1):
+        print(f"\n----- answer {k}  {auto_check(text)} -----\n{text}")
+    pick = input("\nBetter answer? [1/2/t] ").strip().lower()
+    winner = "tie" if pick == "t" else answers[int(pick) - 1][0] if pick in {"1", "2"} else "tie"
+    score[winner] += 1
+print("\nRESULT:", score)</code></pre>
+<p>Run it on Windows with the <code>openai</code> package installed. Do not peek at which is which until the end.</p>
+
+<h2>How much difference is real?</h2>
+<p>With 20 questions, 11 to 9 is a coin flip. 16 to 4 is a real signal. If the result is close, add more questions before deciding. Small differences on small test sets are mostly noise.</p>
+
+<h2>The regression set</h2>
+<p>Write 20 to 30 questions unrelated to your fine-tune: explain a concept, write a short Python function, summarise a paragraph, simple arithmetic, a question it should say "I don't know" to. Run both models. A clear drop on these means <b>catastrophic forgetting</b> (lesson 9.1): fewer epochs, a lower learning rate, or mix general examples into your data.</p>
+
+<h2>Signs of overfitting in the answers</h2>
+<ul>
+<li>It copies phrases or whole answers from the training data.</li>
+<li>Every answer has the same length and opening, even when that does not fit.</li>
+<li>It applies your format to questions where it makes no sense.</li>
+<li>It invents details in the confident style of your training answers.</li>
+</ul>
+
+<h2>LLM as judge, carefully</h2>
+<p>For larger test sets you can ask a strong model to grade answers against a short rubric ("correct, follows the format, no invented facts, 1 to 5"). Shuffle answer order, hide model names, and spot-check its judgements against your own on 10 examples. If you use a cloud model as the judge, remember that your test data is sent to it.</p>
+
+<div class="box tip"><b>Lab</b>
+<ol>
+<li>Import base and fine-tuned GGUFs into Ollama with identical quantization.</li>
+<li>Run <code>ab_eval.py</code> on 20 test examples. Record the score.</li>
+<li>Run your regression set on both.</li>
+<li>Write a three-line verdict in your notes: better at the task? worse at anything? keep or retrain?</li>
+</ol></div>
+
+<div class="quiz"><h3>Check yourself</h3>
+<div class="q" data-correct="2"><p class="qt">Your fine-tune wins 11 to 9 on 20 questions. What can you conclude?</p><ol><li>It is clearly better</li><li>Not much. That is within noise, so test more questions.</li><li>The base model is better</li></ol><p class="why">Small margins on small sets are not reliable evidence.</p></div>
+<div class="q" data-correct="1"><p class="qt">Why hide which answer came from which model?</p><ol><li>So your expectations do not bias your judgement</li><li>To save time</li><li>Ollama requires it</li></ol><p class="why">People favour the model they hope will win. Blinding removes that.</p></div>
+</div>
+
+<div class="lesson-nav"><div><button class="btn primary" id="doneBtn" type="button" data-id="evaluate">Mark lesson complete</button></div><div class="nav-links"><a class="btn" href="first-lora.html">← Train your first LoRA with Unsloth</a><a class="btn primary" href="export.html">Export: merge, convert to GGUF,… →</a></div></div></article>
+    </main>
+  </div>
+</div>
+<div class="scrim" id="scrim" role="dialog" aria-modal="true" aria-label="Search">
+  <div class="sbox"><input id="sinput" type="text" placeholder="Search lessons and terms, e.g. VRAM, GGUF, LoRA" autocomplete="off"><div class="sres" id="sres"></div></div>
+</div>
+<script src="../assets/js/course-data.js"></script>
+<script src="../assets/js/widgets.js"></script>
+<script src="../assets/js/app.js"></script>
+</body>
+</html>

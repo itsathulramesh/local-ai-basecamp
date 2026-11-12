@@ -1,0 +1,80 @@
+<!-- {"id": "transformer", "module": "7", "title": "Inside the transformer", "minutes": 15, "optional": false} -->
+<p class="lede">You will soon choose which parts of a model to train and which directions to remove from it. That only makes sense once you can picture what is inside. This lesson walks through one token's journey through a transformer, with no maths beyond addition and multiplication.</p>
+<div class="goals"><h4>What you will learn</h4><ul>
+<li>Follow a token from embedding to prediction</li>
+<li>Explain the residual stream, attention and the MLP</li>
+<li>Name the weight matrices you will target with LoRA and edit with ablation</li>
+<li>Explain grouped-query attention, hybrid layers and mixture-of-experts at a high level</li>
+</ul></div>
+
+<h2>The big picture</h2>
+<ol>
+<li><b>Embedding.</b> Each token id is looked up in a table and becomes a vector, a list of a few thousand numbers (for example 4,096 for a 9B model, 1,024 for a 0.8B).</li>
+<li><b>A stack of blocks.</b> The vector passes through dozens of identical-shaped blocks (layers). Each block has two parts: <b>attention</b> and an <b>MLP</b>.</li>
+<li><b>Prediction.</b> The final vector is turned into a score for every token in the vocabulary. That is the "next token" output from lesson 1.1.</li>
+</ol>
+
+<h2>The residual stream: a shared bus</h2>
+<p>Here is the idea that makes everything else click. Each block does not replace the token's vector. It <i>reads</i> the vector, computes something, and <i>adds</i> its result back. The running vector is called the <b>residual stream</b>. Think of it as a shared bus or whiteboard that every layer reads from and writes to.</p>
+<div class="box concept"><b>Concept: the residual stream</b>
+<p>The token's vector after layer N equals the embedding plus everything every layer so far has added. Because it is a sum, a concept the model tracks often shows up as a <b>direction</b> in this space. Module 10 exploits exactly that: find the direction for a behaviour, then add it (steering) or delete it (ablation).</p></div>
+
+<h2>Attention: tokens looking at each other</h2>
+<p>A word's meaning depends on context. "Bank" means something different after "river" than after "loan". Attention lets each token pull information from earlier tokens.</p>
+<ul>
+<li>Each token makes a <b>query</b> ("what am I looking for?"), a <b>key</b> ("what do I contain?") and a <b>value</b> ("what will I share?"). These are produced by three weight matrices called <code>q_proj</code>, <code>k_proj</code> and <code>v_proj</code>.</li>
+<li>A token compares its query with every earlier token's key. High match means "pay attention to that one". It then takes a weighted mix of their values.</li>
+<li>A fourth matrix, <code>o_proj</code>, writes the result back into the residual stream.</li>
+<li>A <b>causal mask</b> stops a token from looking at later tokens, so the model cannot cheat by seeing the answer.</li>
+<li><b>Multi-head attention</b> runs many of these in parallel, each free to focus on a different kind of relationship.</li>
+</ul>
+<p>The keys and values of previous tokens are exactly what the <b>KV cache</b> stores (lesson 3.3). That is why the cache grows with context.</p>
+<div class="box tip"><b>Grouped-query attention (GQA)</b>
+<p>Modern models let several query heads share one set of keys and values. With 32 query heads but 8 key/value heads, the KV cache is four times smaller. That "KV heads" number is what the lesson 3.3 calculator uses.</p></div>
+
+<h2>The MLP: where much of the knowledge lives</h2>
+<p>After attention, each token's vector goes through a small two-layer network applied to that token alone. It expands the vector to a much wider size (for example 4,096 to 12,288), applies a non-linear function, and squeezes it back down. In most current models the matrices are called <code>gate_proj</code>, <code>up_proj</code> and <code>down_proj</code>. Research suggests MLPs act a bit like key-value memories, storing many associations ("Paris" → "France"). <code>down_proj</code> is the matrix that writes the result into the residual stream.</p>
+
+<h2>Normalisation and position</h2>
+<ul>
+<li><b>RMSNorm</b> rescales the vector before each part so numbers stay in a healthy range.</li>
+<li><b>Position</b> is injected so the model knows word order. Most current models use a method called RoPE, which rotates queries and keys by an angle that depends on position.</li>
+</ul>
+
+<h2>The names you will use later</h2>
+<div class="tw"><table><thead><tr><th>Weight</th><th>Part</th><th>Reads or writes the stream?</th><th>Used in</th></tr></thead><tbody>
+<tr><td><code>embed_tokens</code></td><td>Embedding table</td><td>Writes the first vector</td><td>Ablation (10.3)</td></tr>
+<tr><td><code>q_proj</code>, <code>k_proj</code>, <code>v_proj</code></td><td>Attention</td><td>Read</td><td>LoRA targets (9.4)</td></tr>
+<tr><td><code>o_proj</code></td><td>Attention output</td><td>Writes</td><td>LoRA, ablation</td></tr>
+<tr><td><code>gate_proj</code>, <code>up_proj</code></td><td>MLP</td><td>Read</td><td>LoRA</td></tr>
+<tr><td><code>down_proj</code></td><td>MLP output</td><td>Writes</td><td>LoRA, ablation</td></tr>
+<tr><td><code>lm_head</code></td><td>Output scores</td><td>Reads the final vector</td><td>Rarely edited</td></tr>
+</tbody></table></div>
+<p>The "writers" (<code>embed_tokens</code>, <code>o_proj</code>, <code>down_proj</code>, and in hybrid models the linear-attention <code>out_proj</code>) are the only places anything enters the residual stream. Remember that, because abliteration edits exactly those.</p>
+
+<h2>Variations you will meet</h2>
+<ul>
+<li><b>Hybrid models.</b> Some recent models, including the Qwen3.5 family, mix ordinary attention layers with "linear attention" layers (Gated DeltaNet) that keep a fixed-size running memory instead of a growing KV cache. In Qwen3.5 roughly three of every four layers are linear, which makes long context much cheaper. Their output matrix is called <code>out_proj</code>.</li>
+<li><b>Mixture-of-experts.</b> The MLP is replaced by many expert MLPs and a router picks a few per token (lesson 2.4).</li>
+<li><b>Vision models.</b> A separate vision encoder turns images into vectors that enter the same residual stream. In GGUF land that encoder ships as the <code>mmproj</code> file.</li>
+</ul>
+
+<h2>Count the parameters</h2>
+<p>A quick sanity check to run in the AI Python environment from lesson 2.3. It downloads only a small model's config and builds an empty skeleton, so it is fast and needs no GPU:</p>
+<pre data-lang="python"><code>from accelerate import init_empty_weights
+from transformers import AutoConfig, AutoModelForCausalLM
+
+cfg = AutoConfig.from_pretrained("Qwen/Qwen3-0.6B")   # any small model id works
+with init_empty_weights():
+    model = AutoModelForCausalLM.from_config(cfg)
+total = sum(p.numel() for p in model.parameters())
+print(f"{total/1e9:.2f} B parameters")
+for name, p in list(model.named_parameters())[:12]:
+    print(name, tuple(p.shape))</code></pre>
+<p>Read the printed names. You will see <code>embed_tokens</code>, then <code>layers.0.self_attn.q_proj</code> and friends, then <code>layers.0.mlp.down_proj</code>. Those are the exact strings you will put in a LoRA config.</p>
+
+<div class="quiz"><h3>Check yourself</h3>
+<div class="q" data-correct="1"><p class="qt">What does each transformer block do to the residual stream?</p><ol><li>Reads it and adds its own result to it</li><li>Deletes it and writes a new one</li><li>Nothing; only the last layer uses it</li></ol><p class="why">Every block adds to the running sum. That is why concepts appear as directions you can add or remove.</p></div>
+<div class="q" data-correct="3"><p class="qt">Which matrices write into the residual stream?</p><ol><li><code>q_proj</code> and <code>k_proj</code></li><li><code>gate_proj</code> and <code>up_proj</code></li><li><code>embed_tokens</code>, <code>o_proj</code> and <code>down_proj</code> (plus <code>out_proj</code> in hybrid models)</li></ol><p class="why">Those are the "writers". Ablation edits them so a direction can never be written.</p></div>
+<div class="q" data-correct="2"><p class="qt">Why does grouped-query attention make long context cheaper?</p><ol><li>It removes the MLP</li><li>Several query heads share keys and values, so the KV cache is smaller</li><li>It skips half the tokens</li></ol><p class="why">Fewer KV heads means fewer numbers cached per token.</p></div>
+</div>

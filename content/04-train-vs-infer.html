@@ -1,0 +1,40 @@
+<!-- {"id": "train-vs-infer", "module": "1", "title": "Training vs inference: what your PC will actually do", "minutes": 8, "optional": false} -->
+<p class="lede">Two very different jobs hide behind the phrase "running AI". Most people on a home PC only ever do one of them, and knowing which saves you from buying the wrong hardware.</p>
+<div class="goals"><h4>What you will learn</h4><ul>
+<li>Define inference and training and say which needs more hardware</li>
+<li>Describe the stages a model goes through from raw text to a chatbot</li>
+<li>Know where fine-tuning fits, which is the part you will eventually do</li>
+</ul></div>
+
+<h2>Inference: using a trained model</h2>
+<p><b>Inference</b> means giving a finished model some text and getting a response. Every time you chat with a local model, that is inference. It needs enough memory to hold the weights and a bit of working space. A home GPU can do it for models up to a certain size.</p>
+
+<h2>Training: creating or changing the weights</h2>
+<p><b>Training</b> means adjusting the weights. It needs far more: the weights, plus a copy of the training signals for every weight, plus the data flowing through. As a rough rule, fully training a model needs several times the memory that running it needs, and it takes huge amounts of computation.</p>
+
+<div class="box concept"><b>Concept: why you can run a big model but cannot train one</b>
+<p>Running a model reads the weights once per word. Training reads and rewrites them millions of times and stores extra numbers for each. Frontier models are trained on thousands of GPUs for weeks. A single home GPU cannot do that, but it can do something much smaller: fine-tuning.</p></div>
+
+<h2>The life of a model</h2>
+<ol>
+<li><b>Pre-training.</b> The model reads trillions of words and learns to predict the next one. This costs millions of dollars. The result is a <b>base model</b>. It continues text but does not follow instructions well.</li>
+<li><b>Instruction tuning (SFT).</b> The base model is trained further on examples of questions and good answers so it behaves like an assistant. The result is an <b>instruct</b> or <b>chat</b> model.</li>
+<li><b>Preference tuning / alignment (RLHF, DPO and similar).</b> People or other models rank answers, and the model is nudged toward the preferred ones and away from harmful ones. This is where refusals come from (lesson 5.1).</li>
+<li><b>Optional: reasoning training.</b> Some models are trained to think step by step before answering. These are often called "thinking" models.</li>
+<li><b>Release.</b> The weights are published. You download them and do inference.</li>
+</ol>
+
+<h2>Where you come in: fine-tuning</h2>
+<p><b>Fine-tuning</b> takes a finished model and trains it a little more on your own examples, to teach a style, a format or a specialty. Techniques like <b>LoRA</b> and <b>QLoRA</b> train only a small add-on instead of every weight, which makes fine-tuning possible on one home GPU. That is the subject of module 9.</p>
+
+<div class="tw"><table><thead><tr><th></th><th>Inference</th><th>Fine-tuning (LoRA)</th><th>Pre-training</th></tr></thead><tbody>
+<tr><td>What changes</td><td>Nothing</td><td>A small add-on to the weights</td><td>All weights, from scratch</td></tr>
+<tr><td>Needs</td><td>One GPU, sized to the model</td><td>One GPU with more headroom, or a rented one</td><td>Thousands of GPUs</td></tr>
+<tr><td>Realistic on your PC</td><td>Yes</td><td>For small models, yes</td><td>No</td></tr>
+</tbody></table></div>
+
+<div class="quiz"><h3>Check yourself</h3>
+<div class="q" data-correct="2"><p class="qt">Chatting with a model you downloaded is which activity?</p><ol><li>Training</li><li>Inference</li><li>Pre-training</li></ol><p class="why">The weights are fixed and only read.</p></div>
+<div class="q" data-correct="1"><p class="qt">Which stage gives a model its refusal behaviour?</p><ol><li>Preference tuning / alignment</li><li>Reading the raw text corpus</li><li>Downloading from Hugging Face</li></ol><p class="why">Pre-training only learns text patterns. Alignment steps teach what to decline.</p></div>
+<div class="q" data-correct="3"><p class="qt">Why can LoRA fine-tuning fit on a home GPU?</p><ol><li>It skips the data</li><li>It only works on tiny 100-parameter models</li><li>It trains a small add-on instead of every weight</li></ol><p class="why">Far fewer trainable numbers means far less memory for the training signals.</p></div>
+</div>

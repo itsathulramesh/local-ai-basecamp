@@ -1,0 +1,129 @@
+<!-- {"id": "ablation", "module": "10", "title": "Direction ablation and abliteration: editing weights", "minutes": 20, "optional": false} -->
+<p class="lede">Steering adds a direction while the model runs. Ablation removes a direction permanently, by editing the weights so no layer can ever write it. Aimed at the refusal direction, this is abliteration, the most common way uncensored models are made. This lesson teaches the maths, then gives you a script that does it.</p>
+<div class="goals"><h4>What you will learn</h4><ul>
+<li>Remove a direction from a vector, and from a weight matrix</li>
+<li>Bake an edit into a model and save it as new weights</li>
+<li>Run the full abliteration pipeline and evaluate it honestly</li>
+<li>Know the costs, and how "healing" recovers quality</li>
+</ul></div>
+
+<div class="box warn"><b>Before you start</b>
+<p>Work on a copy and keep the original. Measure before and after. When you remove a model's ability to refuse, its judgement becomes your job (lesson 5.3).</p></div>
+
+<h2>The maths, in two dimensions</h2>
+<p>Take a vector x = (3, 4) and a unit direction r̂ = (1, 0). The dot product x·r̂ = 3 says how far x goes along r̂. Removing that part:</p>
+<pre data-lang="text"><code>x' = x − (x·r̂) r̂ = (3, 4) − 3·(1, 0) = (0, 4)
+check: x'·r̂ = 0     → nothing left along r̂, everything else untouched</code></pre>
+<p>Add a strength s: <code>x' = x − s (x·r̂) r̂</code>. s = 1 removes the component exactly, s = 0.5 halves it, s = 2 flips it.</p>
+
+<h2>From vectors to weights</h2>
+<p>A writer matrix W (lesson 7.2) adds <code>y = W·x</code> to the residual stream. To make sure its output never contains r̂:</p>
+<pre data-lang="text"><code>W' = W − r̂ (r̂ᵀ W)            # for o_proj, out_proj, down_proj  (PyTorch shape [hidden, in])
+E' = E − (E r̂) r̂ᵀ            # for the embedding table          (shape [vocab, hidden])</code></pre>
+<p>If you edit the embedding and <i>every</i> writer in every layer, the stream can never contain r̂, because it is just the sum of what those writers add. This "full orthogonalization" is what abliteration does. Editing only a few writers is "targeted ablation", with a smaller effect and fewer side effects.</p>
+<div class="box warn"><b>Two classic mistakes</b>
+<ul>
+<li>Do the maths in float32, then cast back to bf16. Editing in bf16 adds rounding error comparable to the edit itself.</li>
+<li>Edit Hugging Face safetensors weights, never GGUF tensors. GGUF stores dimensions in reverse order, so the code would edit the wrong axis.</li>
+</ul></div>
+
+<h2>The script: ablate.py</h2>
+<p>It uses <code>dirkit.py</code> from lesson 10.1. Give it two prompt files (one prompt per line), optional system prompts for each, a layer, and test prompts. It finds the direction, shows outputs before, edits the weights, shows outputs after, and saves the edited model.</p>
+<pre data-lang="python"><code>"""ablate.py: find a direction from two prompt sets and remove it from every writer weight."""
+import argparse, torch
+from dirkit import load, chat, last_token_states, generate, read_lines
+
+
+@torch.no_grad()
+def orthogonalize(model, r):
+    r = r.float()
+    def fix(W):                                   # writer weight, shape [hidden, in]
+        Wf = W.data.float(); rr = r.to(Wf.device)
+        Wf -= torch.outer(rr, rr @ Wf)
+        W.data.copy_(Wf.to(W.dtype))
+    E = model.model.embed_tokens.weight           # shape [vocab, hidden]
+    Ef = E.data.float(); rr = r.to(Ef.device)
+    Ef -= torch.outer(Ef @ rr, rr)
+    E.data.copy_(Ef.to(E.dtype))
+    edited = 1
+    for layer in model.model.layers:
+        for part in ("self_attn", "linear_attn"):
+            mod = getattr(layer, part, None)
+            for name in ("o_proj", "out_proj"):
+                if mod is not None and hasattr(mod, name):
+                    fix(getattr(mod, name).weight); edited += 1
+        fix(layer.mlp.down_proj.weight); edited += 1
+    return edited
+
+
+def main():
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--pos", required=True); ap.add_argument("--neg", required=True)
+    ap.add_argument("--pos-system"); ap.add_argument("--neg-system")
+    ap.add_argument("--test", required=True); ap.add_argument("--test-system")
+    ap.add_argument("--layer", type=int, help="decoder layer whose output defines the direction")
+    ap.add_argument("--out", default="edited-model")
+    a = ap.parse_args()
+    tok, model = load()
+    pos = last_token_states(model, tok, [chat(tok, q, a.pos_system) for q in read_lines(a.pos)])
+    neg = last_token_states(model, tok, [chat(tok, q, a.neg_system) for q in read_lines(a.neg)])
+    diff = pos.mean(1) - neg.mean(1)
+    for i in range(1, diff.shape[0]):
+        print(f"layer {i - 1:2d}: |difference| = {diff[i].norm():.2f}")
+    L = a.layer if a.layer is not None else int(0.5 * len(model.model.layers))
+    r = diff[L + 1] / diff[L + 1].norm()
+    tests = [chat(tok, q, a.test_system) for q in read_lines(a.test)]
+    before = [generate(model, tok, t) for t in tests]
+    print("edited", orthogonalize(model, r), "weight matrices using layer", L)
+    after = [generate(model, tok, t) for t in tests]
+    for (b, nb), (c, nc) in zip(before, after):
+        print(f"\nBEFORE ({nb} tok): {b[:200]!r}\nAFTER  ({nc} tok): {c[:200]!r}")
+    model.save_pretrained(a.out); tok.save_pretrained(a.out)
+    torch.save(r, f"{a.out}/direction.pt")
+
+
+if __name__ == "__main__":
+    main()</code></pre>
+
+<h2>Lab: remove the "be verbose" direction</h2>
+<p>A safe first edit you can measure objectively. Put 30 or more varied questions in <code>questions.txt</code> and 10 different ones in <code>test.txt</code>, then:</p>
+<pre data-lang="powershell"><code>python ablate.py --pos questions.txt --neg questions.txt `
+  --pos-system "Answer at length with detail and examples." `
+  --neg-system "Answer in one short sentence." `
+  --test test.txt --test-system "Answer at length with detail and examples." --out less-verbose</code></pre>
+<p>After the edit, the model should struggle to follow "answer at length" and its answers should get shorter, because it can no longer represent that instruction along the removed direction. Try several <code>--layer</code> values around the middle of the model and compare. Then run a few unrelated questions to check general quality.</p>
+
+<h2>Abliteration: the same edit, aimed at refusals</h2>
+<p>Arditi et al. (2024) found that across 13 open chat models up to 72B, refusing is largely mediated by one direction. Abliteration finds it with exactly this script:</p>
+<ul>
+<li><code>--pos</code>: requests the model refuses.</li>
+<li><code>--neg</code>: similar requests it answers normally, matched in length and style.</li>
+<li>No system prompts.</li>
+<li><code>--test</code>: held-out requests of both kinds, never used to find the direction.</li>
+</ul>
+<p>The research used a few hundred prompts per side from public instruction datasets. For your own purposes, the most useful positive set is usually the <b>legitimate requests your model over-refuses</b> in your field (fiction, security education, medicine, history), because that is the behaviour you actually want removed. Then pick the layer by testing: the best layer is the one where held-out refusals drop most while answers stay coherent.</p>
+
+<h3>Evaluate it like an engineer</h3>
+<pre data-lang="python"><code>REFUSAL_MARKERS = ["i can't", "i cannot", "i'm sorry", "i won't", "as an ai", "i am unable"]
+def refused(text):
+    return any(m in text.lower()[:200] for m in REFUSAL_MARKERS)
+# refusal rate = share of held-out prompts where refused(answer) is True, before vs after</code></pre>
+<ol>
+<li><b>Refusal rate</b> on held-out prompts, before and after. This keyword check is a rough first pass, so read the answers too.</li>
+<li><b>Quality</b> on your regression set from lesson 9.5. Abliteration usually costs a little. One published comparison of a 27B abliterated model found broad knowledge almost unchanged but truthfulness benchmarks down by about 6 points (lesson 5.2).</li>
+<li><b>New problems</b>: more hallucination, weaker instruction following, odd disclaimers.</li>
+</ol>
+
+<h3>Healing</h3>
+<p>A widely read 2024 tutorial by Maxime Labonne found that abliterating a Llama 3 8B model removed refusals but lowered every benchmark run, and that a short DPO step afterwards recovered most of the loss (though not on maths). That is the standard recipe: abliterate, then a small DPO or SFT run on good-quality examples (lesson 9.7).</p>
+
+<h2>From edited weights to LM Studio</h2>
+<p>The script saves ordinary safetensors. Convert and quantize them exactly like a merged fine-tune (lesson 9.6): <code>convert_hf_to_gguf.py</code>, then <code>llama-quantize</code>, then import.</p>
+<div class="box tip"><b>Bigger models</b>
+<p>The script loads the whole model onto the GPU in 16-bit, so it suits models up to roughly half your VRAM in billions of parameters (a 4B model needs about 8 GB; on a 4 GB card, stay with 0.6B to 1.5B models). For larger models, compute the direction on the GPU, then edit the safetensors files shard by shard on the CPU with the same two formulas, which needs no GPU memory.</p></div>
+
+<div class="quiz"><h3>Check yourself</h3>
+<div class="q" data-correct="2"><p class="qt">Why must every writer be edited for full orthogonalization?</p><ol><li>To make the file smaller</li><li>The residual stream is the sum of everything writers add, so any unedited writer could still write the direction</li><li>Because LoRA requires it</li></ol><p class="why">Only when every source is cleaned can the stream never contain r̂.</p></div>
+<div class="q" data-correct="1"><p class="qt">Why edit in float32 and cast back?</p><ol><li>bf16 rounding error can be as large as the edit itself</li><li>GGUF requires float32</li><li>It is faster</li></ol><p class="why">High-precision maths keeps small edits intact.</p></div>
+<div class="q" data-correct="3"><p class="qt">Refusals dropped to zero after abliteration. Is the job done?</p><ol><li>Yes</li><li>Yes, if the file is the same size</li><li>No. Check quality on a regression set and read answers for new problems, then consider healing.</li></ol><p class="why">"Answers everything" says nothing about whether the answers are good.</p></div>
+</div>

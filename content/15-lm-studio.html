@@ -1,0 +1,60 @@
+<!-- {"id": "lm-studio", "module": "4", "title": "Your first local model with LM Studio", "minutes": 14, "optional": false} -->
+<p class="lede">LM Studio is the friendliest way to start: a desktop app with a model browser, a chat window and a local server. By the end of this lesson you will have a model answering questions on your own GPU.</p>
+<div class="goals"><h4>What you will learn</h4><ul>
+<li>Install LM Studio and download a model</li>
+<li>Load it with the GPU and chat</li>
+<li>Check that the GPU is really being used</li>
+<li>Compare real VRAM use with your calculator estimate</li>
+</ul></div>
+
+<h2>1. Install</h2>
+<p>Download the Windows installer from <a href="https://lmstudio.ai" target="_blank" rel="noopener">lmstudio.ai</a> and run it. It needs a 64-bit PC with a CPU that supports AVX2 (almost every processor from the last decade does). A GPU is optional but makes it much faster. Or from a terminal:</p>
+<pre data-lang="powershell"><code>winget install ElementLabs.LMStudio</code></pre>
+<p>If the winget name does not work, use the installer. On first launch you may be offered a "developer" or "power user" view. Choose that, because it shows the settings this course explains.</p>
+
+<h2>2. Find and download a model</h2>
+<div class="box win"><b>On your PC</b>
+<ol>
+<li>Click the <b>Discover</b> tab (magnifying glass).</li>
+<li>Search for a model in the size class from lesson 2.4, for example "qwen 9b" or "gemma 12b".</li>
+<li>LM Studio marks each file with a badge showing whether it will fully fit your GPU. Choose a <b>Q4_K_M</b> file for your first model.</li>
+<li>Click <b>Download</b>. It saves into the <b>My Models</b> folder.</li>
+</ol></div>
+<p>Pick an <b>instruct</b> version, not a base model.</p>
+
+<h2>3. Load and chat</h2>
+<ol>
+<li>Open the <b>Chat</b> tab and click the model selector at the top.</li>
+<li>Before loading, click the gear or "Load settings" for the model. Set <b>GPU Offload</b> to the maximum so all layers go to the GPU. Set <b>Context Length</b> to 8192 for now.</li>
+<li>Click <b>Load</b>, then type a message.</li>
+</ol>
+<p>Try these three to see how the model behaves:</p>
+<pre data-lang="text"><code>Explain what a token is to a ten-year-old in three sentences.
+Write a Python function that returns the nth Fibonacci number.
+What happened in the news yesterday?</code></pre>
+<p>The third one will fail or invent something. That is your first real lesson about knowledge cutoffs.</p>
+
+<h2>4. Check the GPU is being used</h2>
+<p>Open a second terminal and run <code>nvidia-smi -l 1</code> while the model answers. You should see Memory-Usage jump by roughly the model's size plus the context cache, and GPU-Util rise while it generates. LM Studio also shows tokens per second under each reply.</p>
+<div class="box tip"><b>Lab: verify the maths</b>
+<ol>
+<li>Note VRAM used before loading, after loading, and after a long reply.</li>
+<li>Compare with your lesson 3.3 calculator prediction. The weights part should be within a few percent. Overhead varies by about a gigabyte.</li>
+<li>Record tokens per second. Repeat once with 32K context and see how VRAM changes.</li>
+</ol></div>
+
+<h2>Useful tour</h2>
+<ul>
+<li><b>Chat</b>: conversations, system prompt box, presets.</li>
+<li><b>Discover</b>: find and download models. You can also search Hugging Face directly.</li>
+<li><b>My Models</b>: the folder of downloaded files. Delete from here to free disk space.</li>
+<li><b>Developer</b>: the local server (lesson 6.2) and logs. Logs are the first place to look when something is wrong.</li>
+<li><b>Settings</b>: choose the runtime. The CUDA runtime is the one that uses your NVIDIA GPU, and LM Studio tells you when updates are available.</li>
+</ul>
+<div class="box warn"><b>Guardrails</b>
+<p>LM Studio can refuse to load a model that it thinks will not fit. That protects your system from freezing. You can relax it in settings, but a model that truly cannot fit will make Windows crawl.</p></div>
+
+<div class="quiz"><h3>Check yourself</h3>
+<div class="q" data-correct="3"><p class="qt">How do you confirm the GPU is doing the work?</p><ol><li>Check the CPU temperature only</li><li>Count the words in the reply</li><li>Watch Memory-Usage and GPU-Util in <code>nvidia-smi</code> while it generates</li></ol><p class="why">VRAM use and GPU utilisation rising together show the model is on the GPU.</p></div>
+<div class="q" data-correct="1"><p class="qt">Which setting do you raise to put all model layers in VRAM?</p><ol><li>GPU Offload</li><li>Temperature</li><li>Top-p</li></ol><p class="why">GPU Offload sets how many layers go to the GPU.</p></div>
+</div>

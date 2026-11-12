@@ -1,0 +1,83 @@
+<!-- {"id": "windows-dev-setup", "module": "2", "title": "Windows toolbox: terminal, Python, Git and optional WSL2", "minutes": 14, "optional": false} -->
+<p class="lede">You said you know basic Python and some terminal. This lesson tightens that up into a working setup on Windows, so later lessons can say "run this command" without surprises.</p>
+<div class="goals"><h4>What you will learn</h4><ul>
+<li>Use Windows Terminal and PowerShell for the commands in this course</li>
+<li>Install Python and Git with <code>winget</code></li>
+<li>Create and use a virtual environment</li>
+<li>Set up one AI Python environment with PyTorch and Transformers for the whole course</li>
+<li>Know what WSL2 is and when you will want it</li>
+</ul></div>
+
+<h2>Terminal basics</h2>
+<p>Install <b>Windows Terminal</b> from the Microsoft Store if it is not already there (Windows 11 includes it). It hosts PowerShell tabs. Commands in this course are written for PowerShell. A handful you will use constantly:</p>
+<pre data-lang="powershell"><code>cd $HOME\ai-lab        # change folder
+ls                     # list files (alias for Get-ChildItem)
+mkdir experiments      # make a folder
+code .                 # open the folder in VS Code, if installed
+cls                    # clear the screen</code></pre>
+
+<h2>Install Python and Git</h2>
+<p><b>winget</b> is Windows' built-in package manager.</p>
+<pre data-lang="powershell"><code>winget install Python.Python.3.12
+winget install Git.Git
+winget install Microsoft.VisualStudioCode</code></pre>
+<p>Close and reopen the terminal, then check:</p>
+<pre data-lang="powershell"><code>python --version
+git --version</code></pre>
+<div class="box warn"><b>If <code>python</code> opens the Microsoft Store</b>
+<p>Windows has "app execution aliases" that can hijack the command. Open Settings, search "Manage app execution aliases" and turn off the Python entries, or use <code>py</code> (the Python launcher) instead of <code>python</code>.</p></div>
+
+<h2>Virtual environments</h2>
+<p>A <b>virtual environment</b> is a private folder of Python packages for one project. AI libraries are large and have strict version needs, so keeping each project separate prevents breakage.</p>
+<pre data-lang="powershell"><code>cd $HOME\ai-lab
+python -m venv .venv
+.venv\Scripts\Activate.ps1
+pip install --upgrade pip
+pip install openai requests</code></pre>
+<p>Your prompt shows <code>(.venv)</code> when it is active. Run <code>deactivate</code> to leave it.</p>
+<div class="box warn"><b>If activation is blocked</b>
+<p>PowerShell may say scripts are disabled. Allow scripts you wrote or downloaded for your own account only:</p>
+<pre data-lang="powershell"><code>Set-ExecutionPolicy -Scope CurrentUser RemoteSigned</code></pre></div>
+
+<h2>A Python refresher you will actually use</h2>
+<p>You will not need advanced Python for most of this course. This small script is the pattern behind lesson 6.2. Make sure every line makes sense:</p>
+<pre data-lang="python"><code>import requests
+
+url = "http://localhost:1234/v1/chat/completions"
+payload = {
+    "model": "your-model-name",
+    "messages": [{"role": "user", "content": "Say hello in five words."}],
+    "temperature": 0.7,
+}
+reply = requests.post(url, json=payload, timeout=120)
+print(reply.json()["choices"][0]["message"]["content"])</code></pre>
+<p>That is a dictionary, a list of dictionaries, an HTTP request and an index into the JSON response. If any part is unfamiliar, spend an hour on a beginner Python course first. It will pay off many times over.</p>
+
+<h2>Your AI Python environment (set up once)</h2>
+<p>Several later lessons run small models directly in Python: looking at a real tokenizer (1.4), counting parameters (7.2), watching generation (7.4), and steering and editing weights (module 10). They all use one environment with <b>PyTorch</b> (the engine that runs models on your GPU) and Hugging Face <b>Transformers</b> (the library that downloads and loads models). Set it up now, while you are in the terminal, so it is ready when you need it.</p>
+<ol>
+<li>Go to <a href="https://pytorch.org/get-started/locally/" target="_blank" rel="noopener">pytorch.org/get-started/locally</a> and choose <b>Stable, Windows, Pip, Python, CUDA</b>. Copy the command it shows.</li>
+<li>Run these, pasting the PyTorch command where shown:</li>
+</ol>
+<pre data-lang="powershell"><code>cd $HOME\ai-lab
+python -m venv .venv-ai
+.venv-ai\Scripts\Activate.ps1
+python -m pip install --upgrade pip
+# paste the PyTorch command from pytorch.org here, for example:
+# pip install torch --index-url https://download.pytorch.org/whl/cu128
+pip install transformers accelerate safetensors openai numpy pydantic</code></pre>
+<p>Then check that PyTorch sees your GPU:</p>
+<pre data-lang="powershell"><code>python -c "import torch; print(torch.__version__, torch.cuda.is_available(), torch.cuda.get_device_name(0))"</code></pre>
+<p>If it prints <code>True</code> and your card's name, you are done. If it prints <code>False</code>, you probably installed the CPU-only build: run <code>pip uninstall torch</code> and paste the CUDA command again. RTX 50-series cards need a build made with CUDA 12.8 or newer. GTX 16-series and RTX 20-series cards work fine; the scripts in this course automatically use float16 on them because they lack bfloat16 support.</p>
+<div class="box tip"><b>Two environments, two jobs</b>
+<p><code>.venv</code> (above) is a light environment for calling LM Studio or Ollama. <code>.venv-ai</code> is the heavier one for running models in Python. Training with Unsloth gets its own Linux environment in lesson 9.3.</p></div>
+
+<h2>WSL2: Linux inside Windows (optional for now)</h2>
+<p><b>WSL2</b> runs a real Linux system inside Windows, and it can use your NVIDIA GPU. You do not need it to run models with LM Studio or Ollama. You will want it later, because some training tools, including parts of the fine-tuning ecosystem, are developed for Linux first and are often smoother there. When you are ready:</p>
+<pre data-lang="powershell"><code>wsl --install</code></pre>
+<p>This installs Ubuntu. After a restart you get a Linux terminal where Linux commands from tutorials work as written. Module 9 uses it for training. Keep project files inside the Linux filesystem (your Linux home folder), not under <code>/mnt/c</code>, for much better speed.</p>
+
+<div class="quiz"><h3>Check yourself</h3>
+<div class="q" data-correct="1"><p class="qt">Why use a virtual environment?</p><ol><li>Each project gets its own packages, so versions do not clash</li><li>It makes Python run on the GPU</li><li>It is required to open the terminal</li></ol><p class="why">AI libraries are large and version-sensitive. Separate environments keep projects from breaking each other.</p></div>
+<div class="q" data-correct="3"><p class="qt">When do you first really need WSL2?</p><ol><li>To run LM Studio</li><li>To install the NVIDIA driver</li><li>When a training tool is easier to run on Linux</li></ol><p class="why">Inference apps run natively on Windows. WSL2 is a convenience for Linux-first training tools.</p></div>
+</div>

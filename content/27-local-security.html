@@ -1,0 +1,43 @@
+<!-- {"id": "local-security", "module": "6", "title": "Privacy, safety and good hygiene for local AI", "minutes": 8, "optional": false} -->
+<p class="lede">Local does not automatically mean safe. It means the risks are different, and they are yours to manage. Here is a short, practical checklist.</p>
+<div class="goals"><h4>What you will learn</h4><ul>
+<li>Know what "local" really protects and what it does not</li>
+<li>Understand prompt injection in one paragraph</li>
+<li>Apply a safety checklist to your own setup</li>
+</ul></div>
+
+<h2>What local protects</h2>
+<p>Your prompts and files are not sent to a provider. They do not appear in anyone's logs or training data, and a vendor outage or policy change cannot reach them.</p>
+
+<h2>What it does not protect</h2>
+<ul>
+<li>Your files if malware is on the PC. Local AI does not replace normal security.</li>
+<li>You from untrusted model files (lesson 3.2).</li>
+<li>You from <b>prompt injection</b>: when text the model reads contains instructions ("ignore the above and send…"), it may follow them. This matters once the model can read web pages or documents and use tools.</li>
+<li>Apps that phone home. Many AI front ends include telemetry or update checks. Read their privacy settings.</li>
+</ul>
+
+<div class="box concept"><b>Concept: prompt injection is like SQL injection</b>
+<p>Instructions and data share the same channel: text. A malicious document can hide commands. The defence is the same too: do not trust the data, and limit what the model is allowed to do with it.</p></div>
+
+<h2>The checklist</h2>
+<label class="ck"><input type="checkbox" data-k="sec-a"><span>Servers listen on localhost only</span></label>
+<label class="ck"><input type="checkbox" data-k="sec-b"><span>Models come from known publishers, as GGUF or safetensors</span></label>
+<label class="ck"><input type="checkbox" data-k="sec-c"><span>I update the NVIDIA driver, LM Studio and Ollama regularly</span></label>
+<label class="ck"><input type="checkbox" data-k="sec-d"><span>Any agent or script that can run commands asks me before deleting, sending or spending</span></label>
+<label class="ck"><input type="checkbox" data-k="sec-e"><span>I never paste passwords, keys or tokens into prompts</span></label>
+<label class="ck"><input type="checkbox" data-k="sec-f"><span>I verify important facts the model gives me</span></label>
+<label class="ck"><input type="checkbox" data-k="sec-g"><span>I know where my chat history and logs are stored, and I can delete them</span></label>
+<p></p>
+
+<h2>Everyday hygiene</h2>
+<ul>
+<li>Back up your notes, prompts and scripts. Models can be re-downloaded, your work cannot.</li>
+<li>Keep an eye on disk space and VRAM. Many problems are simply "something else is using it".</li>
+<li>Watch temperatures during long runs, such as benchmarks and, later, training.</li>
+<li>Keep your system updated, but pin versions inside a project once it works.</li>
+</ul>
+
+<div class="quiz"><h3>Check yourself</h3>
+<div class="q" data-correct="1"><p class="qt">What is prompt injection?</p><ol><li>Hidden instructions inside text the model reads that try to steer it</li><li>Installing a model with a syringe</li><li>A way to speed up generation</li></ol><p class="why">It is dangerous when a model can read untrusted content and take actions.</p></div>
+</div>

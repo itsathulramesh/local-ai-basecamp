@@ -1,0 +1,71 @@
+<!-- {"id": "tokens-context", "module": "1", "title": "Tokens and the context window (the model's memory)", "minutes": 12, "optional": false} -->
+<p class="lede">A model does not read letters or words. It reads tokens. And it can only "remember" a limited number of them at a time. This is the one kind of memory you really need to understand, and it explains a lot of confusing behaviour.</p>
+<div class="goals"><h4>What you will learn</h4><ul>
+<li>Explain what a token is and why token counts differ from word counts</li>
+<li>Build a tokenizer by hand with byte-pair encoding</li>
+<li>Explain the context window and what happens when it fills up</li>
+<li>Explain why a model forgets earlier parts of a long chat</li>
+<li>Understand why bigger context costs memory on your graphics card</li>
+</ul></div>
+
+<h2>Tokens</h2>
+<p>Computers need numbers, so text is first chopped into pieces called <b>tokens</b> and each piece gets an id. A token can be a whole common word (<code> the</code>), part of a word (<code> un</code> + <code>believ</code> + <code>able</code>), a number, or a punctuation mark. In English, one token is roughly four characters or three quarters of a word. Code and non-English text usually need more tokens per word.</p>
+<p>Try the toy tokenizer below. It uses a simple rule so you can feel the idea. Real tokenizers are learned from data, so exact counts differ between models.</p>
+<div class="widget" data-widget="tokens"></div>
+
+<h2>How a tokenizer is built: byte-pair encoding</h2>
+<p>Most tokenizers are made with <b>byte-pair encoding (BPE)</b>. Start with single characters. Count every pair of neighbouring symbols in a big body of text, merge the most frequent pair into a new symbol, and repeat until the vocabulary is the size you want. The ordered list of merges <i>is</i> the tokenizer.</p>
+<p>A tiny example. Imagine the whole training text is these words, with how often each appears: <code>play</code> ×6, <code>player</code> ×5, <code>playing</code> ×3, <code>replay</code> ×2, <code>replayed</code> ×1.</p>
+<pre data-lang="text"><code>start:    p l a y | p l a y e r | p l a y i n g | r e p l a y | r e p l a y e d
+merge 1:  "p l" appears 17 times      -> pl
+merge 2:  "pl a" appears 17 times     -> pla
+merge 3:  "pla y" appears 17 times    -> play
+merge 4:  "play e" appears 6 times    -> playe
+merge 5:  "playe r" appears 5 times   -> player
+
+result:   play | player | play i n g | r e play | r e playe d</code></pre>
+<p>Frequent words became single tokens. Rarer ones are built from pieces. Now tokenize a word that was never in the training text, <code>displaying</code>, by applying the same merges in order: <code>d i s p l a y i n g</code> → <code>d i s pl a y i n g</code> → <code>d i s pla y i n g</code> → <code>d i s play i n g</code>. Seven tokens. Unseen words still work; they just cost more tokens. A real tokenizer runs this on a huge multilingual corpus until it has 100,000 to 250,000 tokens.</p>
+
+<h2>What costs more tokens</h2>
+<div class="tw"><table><thead><tr><th>Kind of text</th><th>Typical cost</th></tr></thead><tbody>
+<tr><td>Common English prose</td><td>About 4 characters per token</td></tr>
+<tr><td>Code</td><td>More tokens: symbols, indentation and unusual names split up</td></tr>
+<tr><td>Other languages</td><td>Often 1.5 to 3 times more than English, depending on the tokenizer</td></tr>
+<tr><td>Numbers</td><td>Split into chunks of digits, which is one reason models are clumsy at arithmetic</td></tr>
+<tr><td>Random strings, hashes, base64</td><td>Very expensive: almost every few characters is a token</td></tr>
+</tbody></table></div>
+
+<h2>Special tokens</h2>
+<p>Every tokenizer also has <b>special tokens</b>: single ids with a structural meaning, such as "start of a message", "end of a message" or "end of text". They are how a chat model knows where your message ends and its reply begins. Lesson 7.3 shows them in a real chat template, and they matter a lot when you train.</p>
+
+<h3>See a real tokenizer</h3>
+<p>After you set up the AI Python environment in lesson 2.3, activate it and run:</p>
+<pre data-lang="python"><code>from transformers import AutoTokenizer
+tok = AutoTokenizer.from_pretrained("Qwen/Qwen3-0.6B")      # downloads only the tokenizer files
+for text in ["Unbelievable!", "def add(a, b): return a + b", "नमस्ते दुनिया", "1234567", "aGVsbG8gd29ybGQ="]:
+    ids = tok.encode(text)
+    print(len(ids), [tok.decode([i]) for i in ids])</code></pre>
+
+<h2>The context window</h2>
+<p>A model can only look at a fixed number of tokens at once. That limit is the <b>context window</b>, for example 8,192 or 32,768 or 131,072 tokens. It must hold everything: your system prompt, the whole conversation so far, any pasted documents, and the answer being written.</p>
+<div class="box concept"><b>Concept: the context window is the model's working memory</b>
+<p>The model has no memory between messages. Chat apps create the illusion of memory by re-sending the entire conversation every turn. If the conversation grows past the window, the oldest parts must be dropped or summarised, and the model genuinely cannot see them any more. That is why a model "forgets" the start of a long chat.</p></div>
+
+<h3>What this means in practice</h3>
+<ul>
+<li>A bigger window lets you paste longer documents but does not make the model smarter.</li>
+<li>Models often get worse at using information buried in the middle of very long context. Shorter and more focused is usually better.</li>
+<li>Starting a fresh chat for a new task is not a trick. It frees the window and removes distracting history.</li>
+</ul>
+
+<h2>Why context costs graphics memory</h2>
+<p>While generating, the model keeps a running record of every token it has already processed, called the <b>KV cache</b>. It grows with every token. At 4,000 tokens it is small. At 128,000 tokens it can be larger than the model itself. This is the main reason you will choose context length carefully on a GPU with limited memory. Lesson 3.3 has a calculator for it.</p>
+
+<div class="box win"><b>On your PC</b>
+<p>When you load a model in LM Studio or Ollama you pick a context length. Many tools default to a small value so that the model fits. If a model suddenly "forgets" instructions or your pasted document is ignored, check this setting first. It is the most common beginner problem.</p></div>
+
+<div class="quiz"><h3>Check yourself</h3>
+<div class="q" data-correct="2"><p class="qt">A chat app seems to remember what you said ten messages ago. How?</p><ol><li>The model updates its weights as you chat</li><li>The app re-sends the whole conversation to the model every turn</li><li>The model stores your messages in a database inside the file</li></ol><p class="why">Weights are frozen during a chat. "Memory" within a conversation is just text placed back into the context.</p></div>
+<div class="q" data-correct="3"><p class="qt">You double the context length you load. What mainly grows in graphics memory?</p><ol><li>The model weights</li><li>The size of your prompt</li><li>The KV cache</li></ol><p class="why">Weights stay the same size. The cache that tracks processed tokens grows with context.</p></div>
+<div class="q" data-correct="1"><p class="qt">Roughly how many English words are 1,000 tokens?</p><ol><li>About 750</li><li>About 4,000</li><li>About 100</li></ol><p class="why">A token is about three quarters of a word in English.</p></div>
+</div>

@@ -1,0 +1,49 @@
+<!-- {"id": "pc-hardware", "module": "2", "title": "Your PC: CPU, RAM, GPU and VRAM", "minutes": 10, "optional": false} -->
+<p class="lede">Almost every question about local AI comes down to one number: how much video memory your graphics card has. This lesson explains the parts of your PC, which ones matter, and how to read your own specs.</p>
+<div class="goals"><h4>What you will learn</h4><ul>
+<li>Say what the CPU, RAM, GPU and VRAM each do for a language model</li>
+<li>Explain why VRAM and memory bandwidth matter more than anything else</li>
+<li>Find your own graphics card, VRAM and RAM in Windows</li>
+</ul></div>
+
+<h2>The four parts</h2>
+<div class="tw"><table><thead><tr><th>Part</th><th>What it is</th><th>Role for local AI</th></tr></thead><tbody>
+<tr><td>CPU</td><td>The general-purpose processor</td><td>Can run models by itself, but slowly. Handles everything the GPU does not.</td></tr>
+<tr><td>RAM</td><td>System memory (for example 16 or 32 GB)</td><td>Holds whatever does not fit on the GPU. Much slower to use for AI than VRAM.</td></tr>
+<tr><td>GPU</td><td>The graphics processor, with thousands of small cores</td><td>Does the heavy arithmetic of a model many times faster than a CPU.</td></tr>
+<tr><td>VRAM</td><td>The GPU's own fast memory (for example 8, 12 or 24 GB)</td><td>The model's weights must live here to run fast. This is the limiting resource.</td></tr>
+</tbody></table></div>
+
+<div class="box concept"><b>Concept: VRAM sets the speed, VRAM + RAM sets the limit</b>
+<p>A model runs fastest when all of its weights and working memory sit in VRAM. If it does not fit, LM Studio and Ollama put as many layers as they can on the GPU and run the rest from system RAM on the CPU. That works, just more slowly. So two questions decide what you can run: does it fit in <b>VRAM</b> (fast), or in <b>VRAM plus free system RAM</b> (works, slower)? Module 3 teaches you to answer both with arithmetic.</p></div>
+
+<h2>Why memory bandwidth matters</h2>
+<p>To produce each token, the GPU must read essentially all the model's weights from memory once. So the speed of generation is limited by how fast memory can be read, called <b>memory bandwidth</b> and measured in GB/s, rather than by raw computing power. A card with twice the bandwidth generates roughly twice as fast with the same model. Lesson 3.4 turns this into a speed estimate.</p>
+<p>Here is why this matters when shopping or comparing: two cards with the same VRAM can feel very different. A card with a narrow memory bus can be several times slower than one with a wide bus.</p>
+
+<h2>Why NVIDIA?</h2>
+<p>NVIDIA GPUs use a software platform called <b>CUDA</b>. Almost every AI tool is built first for CUDA: LM Studio and Ollama use it to accelerate models, PyTorch uses it for training, and fine-tuning libraries such as Unsloth rely on it. AMD and Intel GPUs also work in several tools, but NVIDIA has the smoothest path, and it is what the rest of this course assumes.</p>
+
+<h2>Find out what you have</h2>
+<div class="box win"><b>On your PC</b>
+<ol>
+<li>Press <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>Esc</kbd> to open Task Manager and click <b>Performance</b>.</li>
+<li>Click <b>GPU</b> (there may be two: a weak integrated one and your NVIDIA card). Note the name, <b>Dedicated GPU memory</b> (this is your VRAM) and the driver version.</li>
+<li>Click <b>Memory</b> and note total RAM and speed.</li>
+<li>Click <b>CPU</b> and note the model name.</li>
+</ol></div>
+<p>Or from a terminal, once the driver is installed (next lesson):</p>
+<pre data-lang="powershell"><code>nvidia-smi --query-gpu=name,driver_version,memory.total,memory.used --format=csv</code></pre>
+<p>Write the result in your <code>NOTES.md</code>. You will need these numbers in nearly every later lesson.</p>
+
+<div class="box warn"><b>Laptops</b>
+<p>Laptop GPUs often have less VRAM than the desktop card with the same name, and may be throttled by heat. Windows can also switch between the integrated and NVIDIA GPU. In the NVIDIA Control Panel or Windows Graphics settings you can set the AI app to use the NVIDIA GPU.</p></div>
+
+<h3>Pick your card</h3>
+<p>Choose your graphics card to see its VRAM and bandwidth and a rough idea of what it can run. Figures are approximate.</p>
+<div class="widget" data-widget="gpupick"></div>
+
+<div class="quiz"><h3>Check yourself</h3>
+<div class="q" data-correct="3"><p class="qt">What decides whether a model runs fast on your PC?</p><ol><li>The number of CPU cores</li><li>How much storage space you have</li><li>Whether the model fits in your VRAM</li></ol><p class="why">Models that fit in VRAM run on the GPU at full speed. Spilling to system RAM is far slower.</p></div>
+<div class="q" data-correct="1"><p class="qt">Two GPUs both have 12 GB. One has double the memory bandwidth. Which generates tokens faster with the same model?</p><ol><li>The higher-bandwidth one, roughly twice as fast</li><li>They are the same</li><li>The one with the lower bandwidth</li></ol><p class="why">Generation reads all weights per token, so bandwidth sets the speed ceiling.</p></div>
+</div>

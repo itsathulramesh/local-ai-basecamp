@@ -1,0 +1,56 @@
+<!-- {"id": "choose-model", "module": "4", "title": "Choosing the right model for the job", "minutes": 12, "optional": false} -->
+<p class="lede">With so many models, what you need is not a ranking but a method. This lesson gives you a repeatable way to choose and a quick way to test.</p>
+<div class="goals"><h4>What you will learn</h4><ul>
+<li>Know the main kinds of model: base, instruct, thinking, coder, vision, embedding</li>
+<li>Apply a three-step method for picking a model</li>
+<li>Run your own small "shootout" to compare candidates</li>
+<li>Read benchmarks with the right amount of scepticism</li>
+</ul></div>
+
+<h2>Kinds of model</h2>
+<div class="tw"><table><thead><tr><th>Kind</th><th>What it is</th><th>Use it for</th></tr></thead><tbody>
+<tr><td>Base</td><td>Continues text, does not follow instructions</td><td>Fine-tuning starting point</td></tr>
+<tr><td>Instruct / chat</td><td>Follows instructions and chats</td><td>Nearly everything</td></tr>
+<tr><td>Thinking / reasoning</td><td>Writes a chain of thought before answering</td><td>Maths, logic, planning. Slower.</td></tr>
+<tr><td>Coder</td><td>Tuned on code</td><td>Programming help</td></tr>
+<tr><td>Vision (VLM)</td><td>Accepts images as well as text</td><td>Screenshots, diagrams, documents</td></tr>
+<tr><td>Embedding</td><td>Turns text into vectors for search. Does not chat.</td><td>Search and RAG (lesson 6.3)</td></tr>
+</tbody></table></div>
+
+<h2>A three-step method</h2>
+<ol>
+<li><b>Fit.</b> Use the lesson 3.3 calculator to list the size classes and quantizations that fit your VRAM with the context you need.</li>
+<li><b>Fit the job.</b> Take a model of the right kind for the task. Search for recent models in that size class with strong community feedback.</li>
+<li><b>Test on your own tasks.</b> Public benchmarks do not know your work.</li>
+</ol>
+
+<h2>The mini shootout</h2>
+<p>Pick two or three candidates. Prepare ten real prompts from your work. Run each prompt on each model with the same settings, and score the answers 1 to 5 in a simple table. Also note tokens per second and VRAM used.</p>
+<pre data-lang="text"><code>prompt | model A | model B | model C | notes
+-------+---------+---------+---------+------
+ 1     |   4     |   3     |   5     | C wrote cleaner code
+ 2     |   2     |   4     |   4     | A hallucinated an API
+ ...</code></pre>
+<p>It takes an hour and teaches you more than any leaderboard.</p>
+
+<h2>Reading benchmarks</h2>
+<ul>
+<li>Benchmarks measure narrow things. A high score on a maths test does not mean a model writes good emails.</li>
+<li>Some models are tuned to the tests. Treat leaderboards as a way to find candidates, not to pick a winner.</li>
+<li>Quantized, abliterated or merged versions score differently from the original. Test the exact file you will use.</li>
+<li>Check the date. Rankings from six months ago are out of date.</li>
+</ul>
+
+<h2>Rules of thumb that last</h2>
+<ul>
+<li>The newest model in a size class usually beats older ones.</li>
+<li>Bigger parameter count beats smaller at the same quantization, up to what you can run fast enough.</li>
+<li>Mixture-of-experts models give the best quality per second when you have the memory.</li>
+<li>For coding, choose a model that was trained for code or is known to be strong at it.</li>
+<li>For long documents, check that its real context length is useful, not only advertised.</li>
+</ul>
+
+<div class="quiz"><h3>Check yourself</h3>
+<div class="q" data-correct="2"><p class="qt">Why run your own ten-prompt comparison?</p><ol><li>Because it is required by Hugging Face</li><li>Public benchmarks do not measure your tasks</li><li>It makes the models faster</li></ol><p class="why">Only your own prompts show which model works for your needs.</p></div>
+<div class="q" data-correct="1"><p class="qt">You want to search your notes by meaning. Which model kind do you need?</p><ol><li>An embedding model</li><li>A base model</li><li>A thinking model</li></ol><p class="why">Embedding models turn text into vectors that can be compared for similarity.</p></div>
+</div>

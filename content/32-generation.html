@@ -1,0 +1,83 @@
+<!-- {"id": "generation", "module": "7", "title": "How text gets generated, token by token", "minutes": 13, "optional": true} -->
+<p class="lede">You have tuned temperature and watched tokens per second. This lesson opens the loop that produces every reply: from raw scores to probabilities, how one token is picked, why the first token is slow and the rest are fast, and why models sometimes loop forever.</p>
+<div class="goals"><h4>What you will learn</h4><ul>
+<li>Turn logits into probabilities with softmax</li>
+<li>Explain greedy decoding versus sampling</li>
+<li>Explain prefill versus decode and what the KV cache saves</li>
+<li>Explain how generation stops and how to fix repetition loops</li>
+</ul></div>
+
+<h2>From logits to probabilities</h2>
+<p>At each step the model outputs one raw score, a <b>logit</b>, for every token in its vocabulary (often 150,000 to 250,000 of them). Scores can be any number. <b>Softmax</b> turns them into probabilities: raise <i>e</i> to each score, then divide by the total so everything adds up to 1.</p>
+<div class="tw"><table><thead><tr><th>Token</th><th>Logit</th><th>e<sup>logit</sup></th><th>Probability</th></tr></thead><tbody>
+<tr><td><code> Paris</code></td><td class="num">5.0</td><td class="num">148.4</td><td class="num">0.84</td></tr>
+<tr><td><code> the</code></td><td class="num">3.0</td><td class="num">20.1</td><td class="num">0.11</td></tr>
+<tr><td><code> a</code></td><td class="num">2.0</td><td class="num">7.4</td><td class="num">0.04</td></tr>
+<tr><td><code> Lyon</code></td><td class="num">0.5</td><td class="num">1.6</td><td class="num">0.01</td></tr>
+</tbody></table></div>
+<p>Temperature (lesson 4.2) divides every logit before softmax. Dividing by 0.5 doubles the gaps, so <code> Paris</code> takes almost everything. Dividing by 1.5 shrinks the gaps, so the others get a real chance.</p>
+
+<h2>Picking a token</h2>
+<ul>
+<li><b>Greedy decoding</b> always takes the top token. Deterministic, good for extraction and code, but prone to bland, repetitive text.</li>
+<li><b>Sampling</b> draws a token at random according to the probabilities, after filters like top-k, top-p and min-p (lesson 4.2). Natural-sounding, slightly different every time.</li>
+<li>A fixed <b>seed</b> makes sampling repeatable, which is useful when you compare settings.</li>
+</ul>
+
+<h2>The autoregressive loop</h2>
+<ol>
+<li>Tokenize the prompt (with the chat template, lesson 7.3).</li>
+<li>Run the model, get logits for the next position, pick a token.</li>
+<li>Append the token to the input and repeat.</li>
+<li>Stop when a stop condition is met.</li>
+</ol>
+<p>"Autoregressive" means each new token depends on all previous ones, including the ones the model just wrote. That is why it cannot go back and fix an earlier sentence.</p>
+
+<h2>Prefill versus decode</h2>
+<div class="tw"><table><thead><tr><th></th><th>Prefill (reading the prompt)</th><th>Decode (writing the answer)</th></tr></thead><tbody>
+<tr><td>Work</td><td>All prompt tokens processed in parallel</td><td>One token per step</td></tr>
+<tr><td>Limited by</td><td>GPU compute</td><td>Memory bandwidth: every step reads all active weights (lesson 3.4)</td></tr>
+<tr><td>You notice it as</td><td>Time to first token, longer with big prompts</td><td>Tokens per second</td></tr>
+</tbody></table></div>
+
+<h2>The KV cache</h2>
+<p>Without a cache, every new token would require recomputing attention for the whole conversation. Instead the model stores each processed token's <b>keys and values</b> (lesson 7.2) and only computes the new token's. That is the KV cache: it turns quadratic work into roughly constant work per token, at the cost of VRAM that grows with context (lesson 3.3). It is also why sending a long conversation again is cheaper when the runtime can reuse a cached prefix.</p>
+
+<h2>How generation stops</h2>
+<ul>
+<li>The model produces the <b>end-of-sequence</b> or end-of-turn token. This is the normal way.</li>
+<li>A <b>maximum token</b> limit is reached (<code>max_tokens</code>). The answer is cut off.</li>
+<li>A <b>stop string</b> you configured appears.</li>
+</ul>
+<p>If the template is wrong, the model never produces a recognised stop token and keeps talking (lesson 7.3).</p>
+
+<h2>Repetition loops</h2>
+<p>Small models, low temperatures and long reasoning chains can fall into loops: once a phrase repeats, it becomes the most likely continuation of itself. Fixes, in order: use the sampling values on the model card, raise temperature slightly, add a small repeat or presence penalty (about 1.05 to 1.1), shorten the context, or switch to a larger model. Module 10 shows that loops can even correspond to a direction you can remove from the weights.</p>
+
+<h2>Watch it happen</h2>
+<p>This script runs greedy decoding by hand and prints the top candidates at each step. Run it in the AI Python environment from lesson 2.3. It takes seconds on your GPU:</p>
+<pre data-lang="python"><code>import torch
+from transformers import AutoModelForCausalLM, AutoTokenizer
+
+name = "Qwen/Qwen3-0.6B"
+tok = AutoTokenizer.from_pretrained(name)
+model = AutoModelForCausalLM.from_pretrained(name, dtype=(torch.bfloat16 if torch.cuda.is_bf16_supported() else torch.float16), device_map="cuda")
+text = tok.apply_chat_template([{"role": "user", "content": "The capital of France is?"}],
+                               tokenize=False, add_generation_prompt=True, enable_thinking=False)
+ids = tok(text, return_tensors="pt").input_ids.to("cuda")
+for step in range(8):
+    with torch.no_grad():
+        logits = model(ids).logits[0, -1].float()
+    probs = torch.softmax(logits, dim=-1)
+    top = torch.topk(probs, 5)
+    shown = ", ".join(f"{tok.decode(int(i))!r} {p:.2f}" for p, i in zip(top.values, top.indices))
+    print(f"step {step}: {shown}")
+    ids = torch.cat([ids, top.indices[:1].view(1, 1)], dim=1)      # greedy: take the top token
+print(tok.decode(ids[0], skip_special_tokens=True))</code></pre>
+<p>This simple loop has no KV cache, so it recomputes everything each step. That is fine for 8 tokens and a good illustration of why real runtimes cache.</p>
+
+<div class="quiz"><h3>Check yourself</h3>
+<div class="q" data-correct="2"><p class="qt">Why is the first token slower to appear when you paste a long document?</p><ol><li>The model is downloading</li><li>Prefill must process every prompt token before decoding starts</li><li>Temperature is too high</li></ol><p class="why">Time to first token grows with prompt length.</p></div>
+<div class="q" data-correct="1"><p class="qt">What does the KV cache save?</p><ol><li>Recomputing keys and values for all earlier tokens at every step</li><li>Disk space</li><li>The model's weights</li></ol><p class="why">It trades VRAM for much less computation per token.</p></div>
+<div class="q" data-correct="3"><p class="qt">A reply ends mid-sentence. Which stop condition most likely fired?</p><ol><li>End-of-sequence token</li><li>A stop string</li><li>The maximum token limit</li></ol><p class="why">Raise <code>max_tokens</code> if answers are cut off.</p></div>
+</div>

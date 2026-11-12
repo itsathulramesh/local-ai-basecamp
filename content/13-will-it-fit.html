@@ -1,0 +1,50 @@
+<!-- {"id": "will-it-fit", "module": "3", "title": "Will it fit? The VRAM and RAM calculator", "minutes": 14, "optional": false} -->
+<p class="lede">This is the most useful skill in the course. In one minute, with simple arithmetic, you can say whether any model will run fully on your GPU, run with help from system RAM, or not run at all, roughly how fast, and what to change.</p>
+<div class="goals"><h4>What you will learn</h4><ul>
+<li>Add up the four things that use VRAM</li>
+<li>Estimate the KV cache for a given context length</li>
+<li>Estimate the GPU + RAM split and its speed when a model does not fit in VRAM</li>
+<li>Decide what to adjust when a model does not fit</li>
+<li>Use the calculator and then check it against reality</li>
+</ul></div>
+
+<h2>The four consumers of VRAM</h2>
+<ol>
+<li><b>Weights</b>: parameters × bits ÷ 8 (lesson 3.1).</li>
+<li><b>KV cache</b>: grows with context length. About <code>2 × layers × KV heads × head size × bytes</code> per token.</li>
+<li><b>Overhead</b>: the CUDA context and temporary buffers, roughly 1 to 1.5 GB.</li>
+<li><b>Windows itself</b>: your desktop and browser take around 0.5 to 1 GB if this GPU also drives your monitor.</li>
+</ol>
+<div class="box concept"><b>Concept: the context bill</b>
+<p>For a typical 8B-class model the cache costs about 0.14 MB per token with the default 16-bit cache. At 32,000 tokens that is roughly 4.7 GB. That is nearly as big as the 4-bit weights. Halving the cache precision to 8-bit halves that cost.</p></div>
+
+<h2>The calculator</h2>
+<div class="widget" data-widget="fit"></div>
+<p>The calculator uses typical layer and head counts for each size class. Real models differ, and some use tricks such as sliding-window or hybrid layers that shrink the cache a lot. Use it for a first estimate, then confirm with <code>nvidia-smi</code>.</p>
+
+<h2>What to adjust when it does not fit</h2>
+<p>Work down this list in order:</p>
+<ol>
+<li><b>Lower the context length.</b> The cheapest fix. Most chats do not need more than 8K.</li>
+<li><b>Quantize the KV cache to 8-bit.</b> About half the cache memory, with small quality cost. In LM Studio this is the K and V cache quantization setting (marked experimental, and it needs Flash Attention on).</li>
+<li><b>Choose a lower weight quantization</b>, for example Q5 to Q4.</li>
+<li><b>Choose a smaller model.</b></li>
+<li><b>Offload layers to system RAM.</b> It works, more slowly. On small cards this is normal, and it is how a 4 GB GPU runs 7B to 12B models.</li>
+</ol>
+
+<h3>What spilling to RAM costs</h3>
+<p>Models are made of layers. If only some layers fit in VRAM, the rest run on the CPU using system RAM. For each token the GPU reads its share of the weights at GPU speed and the CPU reads the rest at RAM speed, so the time per token is roughly the sum of the two. System RAM is much slower to read than VRAM (dual-channel DDR4 is around 40 GB/s, versus 128 GB/s even on a GTX 1650 and 500+ GB/s on mid-range cards), so the RAM part dominates.</p>
+<p>Example: a 12B model at Q4 (about 7 GB) on a 4 GB card with 16 GB RAM. About 2 GB of weights fit on the GPU and about 5 GB run from RAM, giving roughly 3 to 5 tokens per second. That is slower than reading speed but perfectly usable, and many people run models this way. The calculator above shows this split and estimates the speed.</p>
+<p>The real limit is free system RAM. Windows and your apps need about 5 GB, so with 16 GB RAM roughly 11 GB is left for the part of the model that does not fit on the GPU. Past that, Windows swaps to disk and the model crawls.</p>
+<div class="box tip"><b>Try it now</b>
+<ol>
+<li>Put your own VRAM and a model you are curious about into the calculator.</li>
+<li>Write the predicted total in <code>NOTES.md</code>.</li>
+<li>In lesson 4.1 you will load that model and compare against <code>nvidia-smi</code>. Being within about 10 to 15% is normal.</li>
+</ol></div>
+
+<div class="quiz"><h3>Check yourself</h3>
+<div class="q" data-correct="2"><p class="qt">A model fits at 8K context but not at 32K. What is the cheapest first fix?</p><ol><li>Buy more RAM</li><li>Lower the context length</li><li>Reinstall the driver</li></ol><p class="why">The cache grows with context, so shortening it frees VRAM immediately.</p></div>
+<div class="q" data-correct="3"><p class="qt">What happens if a few layers do not fit in VRAM?</p><ol><li>Nothing, speed is unchanged</li><li>The model becomes more accurate</li><li>Those layers run on the CPU and the whole model slows down</li></ol><p class="why">Spilled layers use system RAM and the CPU, which are much slower.</p></div>
+<div class="q" data-correct="1"><p class="qt">Which of these is NOT a normal consumer of VRAM while chatting?</p><ol><li>Your chat history saved on disk</li><li>The model weights</li><li>The KV cache</li></ol><p class="why">Saved history on disk uses disk, not VRAM. Only the text in the active context becomes cache.</p></div>
+</div>

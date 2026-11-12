@@ -1,0 +1,67 @@
+<!-- {"id": "uncensored-routes", "module": "10", "title": "Build your own uncensored custom model: five routes", "minutes": 14, "optional": false} -->
+<p class="lede">You now have every piece: fine-tuning, adapters, and weight editing. This lesson puts them together into practical recipes for a model that is both <i>yours</i> (trained on your data and style) and free of the refusals that get in your way.</p>
+<div class="goals"><h4>What you will learn</h4><ul>
+<li>Compare five routes to a customised, uncensored model</li>
+<li>Pick the right route for your hardware and goal</li>
+<li>Evaluate task quality and refusals separately</li>
+<li>Handle licences and responsibility</li>
+</ul></div>
+
+<h2>The five routes</h2>
+<div class="tw"><table><thead><tr><th>Route</th><th>How</th><th>Pros</th><th>Cons</th></tr></thead><tbody>
+<tr><td>1. Fine-tune an uncensored base</td><td>Use an abliterated model published as <b>safetensors</b> as your Unsloth <code>MODEL</code> (lesson 9.4)</td><td>Cleanest path: train, merge, convert as normal</td><td>You inherit someone else's uncensoring and its quality cost</td></tr>
+<tr><td>2. Fine-tune, then abliterate</td><td>Train on the official model, merge, then run <code>ablate.py</code> on the merged weights (lesson 10.3)</td><td>Full control and understanding</td><td>Two processes to evaluate. May need healing.</td></tr>
+<tr><td>3. Fine-tune on non-refusing data</td><td>Include examples where the assistant fully answers legitimate requests the base used to refuse</td><td>Removes refusals in exactly your domain</td><td>Needs careful data. Can shift style broadly.</td></tr>
+<tr><td>4. Adapter on an uncensored GGUF</td><td>Train on the official base, convert the adapter, apply it to a close uncensored derivative with Ollama <code>ADAPTER</code> or <code>llama-server --lora</code></td><td>Fast to try, no merge</td><td>Experimental. Works only on close derivatives. Must be measured.</td></tr>
+<tr><td>5. Download a ready-made one</td><td>Use an existing uncensored GGUF plus your system prompt or Modelfile (module 8)</td><td>Zero training</td><td>Not customised beyond prompts</td></tr>
+</tbody></table></div>
+
+<h2>Route 1 in practice</h2>
+<p>Community publishers such as huihui-ai release abliterated versions of popular models as safetensors in several sizes. One example is <code>huihui-ai/Huihui-Qwen3.5-9B-abliterated</code> (Apache-2.0). Search Hugging Face for "abliterated" plus your model family and size, check the card names its base model and method, then put it in <code>train_lora.py</code>:</p>
+<pre data-lang="python"><code>MODEL = "huihui-ai/SOME-MODEL-abliterated"   # must be safetensors, not GGUF
+# everything else in train_lora.py stays the same</code></pre>
+<p>You can never train on a GGUF-only release. If a model is published only as GGUF, use route 4 or 5 for it.</p>
+
+<h2>Route 3: training data that does not refuse</h2>
+<p>Research by Qi et al. (2023) showed that fine-tuning on as few as 10 non-refusing examples could strip much of a model's safety behaviour, and that even ordinary benign fine-tuning erodes it somewhat. In practice, for your own model:</p>
+<ul>
+<li>Write examples in your domain where the ideal answer is complete and direct, with no moralising or disclaimers, for requests the base model hedged on.</li>
+<li>Keep them correct and high quality. Every flaw is learned too.</li>
+<li>Mix them with your normal task examples so the model learns your style and your directness together.</li>
+</ul>
+
+<h2>Route 4 in practice</h2>
+<pre data-lang="text"><code># Ollama Modelfile
+FROM ./Some-Model-9B-Uncensored-Q4_K_M.gguf
+ADAPTER ./my-lora-F16.gguf      # trained on the OFFICIAL Some-Model-9B</code></pre>
+<p>An adapter learns a difference from the base it was trained on. A derivative made with small weight edits (such as abliteration) is close enough that it often works, but it is an empirical question. Compare against the same model without the adapter.</p>
+
+<h2>Evaluate two things separately</h2>
+<div class="tw"><table><thead><tr><th>Question</th><th>How</th></tr></thead><tbody>
+<tr><td>Did the trained habits survive?</td><td>Blind A/B on your test set (lesson 9.5)</td></tr>
+<tr><td>Did the uncensoring survive?</td><td>Refusal rate on held-out legitimate prompts (lesson 10.3)</td></tr>
+<tr><td>Did general quality survive?</td><td>Regression set</td></tr>
+</tbody></table></div>
+<div class="box warn"><b>Fine-tuning can bring refusals back</b>
+<p>An adapter trained on the official base learned in the presence of its refusal behaviour, and may partly restore it when applied to an uncensored model. Equally, fine-tuning an abliterated model on cautious data can re-teach caution. Measure, do not assume.</p></div>
+
+<h2>Choosing a route</h2>
+<ul>
+<li><b>Want the quickest result?</b> Route 5, then route 4.</li>
+<li><b>Want the cleanest custom model?</b> Route 1.</li>
+<li><b>Want to understand and control everything?</b> Route 2.</li>
+<li><b>Only one domain is over-refused?</b> Route 3.</li>
+</ul>
+
+<h2>Licences and responsibility</h2>
+<ul>
+<li>Derivatives inherit the base model's licence. Some restrict certain uses or require attribution. Read it before you share a model.</li>
+<li>If you publish an uncensored model, document the base, the method and your evaluation honestly, as you would want others to.</li>
+<li>The law applies to what you produce and do with the output, not the tool (lesson 5.3). Removing refusals moves all of the judgement to you.</li>
+<li>Keep unrestricted models local, bound to localhost, and away from anything other people can use.</li>
+</ul>
+
+<div class="quiz"><h3>Check yourself</h3>
+<div class="q" data-correct="2"><p class="qt">An uncensored model is published only as GGUF. Can you fine-tune it with Unsloth?</p><ol><li>Yes, directly</li><li>No. Training needs safetensors. Use an adapter on it (route 4) or a different base.</li><li>Yes, after renaming the file</li></ol><p class="why">GGUF is an inference format.</p></div>
+<div class="q" data-correct="1"><p class="qt">After applying your adapter to an uncensored model, what must you measure?</p><ol><li>Task quality and refusal rate, separately</li><li>Only file size</li><li>Only speed</li></ol><p class="why">Either one can change, and they can move in opposite directions.</p></div>
+</div>

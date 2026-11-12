@@ -1,0 +1,40 @@
+<!-- {"id": "beyond-sft", "module": "9", "title": "Beyond SFT: DPO, distillation, RL and more", "minutes": 11, "optional": true} -->
+<p class="lede">Supervised fine-tuning teaches by example. Some goals need other kinds of training: preferring good answers over bad ones, copying a stronger model, reading more domain text, or practising tasks with checkable answers. This lesson is your map of those methods.</p>
+<div class="goals"><h4>What you will learn</h4><ul>
+<li>Know when SFT stops being enough</li>
+<li>Explain DPO, distillation, continued pretraining and GRPO</li>
+<li>Know what is realistic on a home GPU</li>
+</ul></div>
+
+<h2>Where SFT stops</h2>
+<p>SFT shows the model one good answer per prompt. It cannot express "this answer is better than that one", and it cannot reward the model for finding a correct answer by itself. That is where preference and reinforcement methods come in.</p>
+
+<h2>DPO: better versus worse</h2>
+<p><b>Direct Preference Optimization</b> trains on pairs: for the same prompt, a <i>chosen</i> answer and a <i>rejected</i> one. The model is pushed toward the chosen style and away from the rejected one, without training a separate reward model. It is the same family of methods that gives chat models their manners, and it is also used to "heal" quality after abliteration (lesson 10.3).</p>
+<pre data-lang="json"><code>{"prompt": "Explain VRAM briefly.", "chosen": "VRAM is the graphics card's own memory...", "rejected": "Great question! As an AI, I'd be happy to..."}</code></pre>
+<p>TRL provides <code>DPOTrainer</code> and Unsloth supports it with LoRA, so DPO on small models fits the same GPUs as SFT. Related methods you will see named: <b>ORPO</b> (combines SFT and preference in one step) and <b>KTO</b> (needs only "good" or "bad" labels, not pairs).</p>
+
+<h2>Distillation: borrow a stronger model's skill</h2>
+<p>A big <b>teacher</b> answers many prompts and a small <b>student</b> is fine-tuned on those answers. The student picks up much of the teacher's style and some of its skill at a fraction of the size. Your dataset script in lesson 9.2 is a simple form of this. Check the teacher's licence or terms for conditions on training with its outputs.</p>
+
+<h2>Continued pretraining: more reading</h2>
+<p>Instead of chat examples, train on raw domain text (the <code>{"text": ...}</code> format) so the model absorbs vocabulary and style of a field, such as medical notes or a programming language. It needs far more data and compute than SFT, and it is usually followed by an SFT step to restore assistant behaviour.</p>
+
+<h2>Reinforcement learning with verifiable rewards (GRPO)</h2>
+<p>For tasks where you can check an answer automatically (maths with a known result, code that must pass tests, output that must be valid JSON), the model generates several attempts, a reward function scores each, and the model is nudged toward the higher-scoring ones. <b>GRPO</b> is the popular method behind recent reasoning models. Unsloth supports it for some small models, but it is slower and fussier than SFT. Try it after you are comfortable with SFT.</p>
+
+<h2>Model merging</h2>
+<p>Combine two fine-tunes of the same base into one model without further training. Covered in lesson 10.5.</p>
+
+<h2>What is realistic at home</h2>
+<div class="tw"><table><thead><tr><th>Method</th><th>8 to 12 GB</th><th>16 to 24 GB</th><th>Rented 40 to 80 GB</th></tr></thead><tbody>
+<tr><td>SFT with LoRA</td><td>0.8B to 4B</td><td>4B to 9B</td><td>Larger models</td></tr>
+<tr><td>DPO with LoRA</td><td>Small models</td><td>Up to about 9B, short sequences</td><td>Comfortable</td></tr>
+<tr><td>GRPO</td><td>Tiny models only</td><td>Small models (about 4B)</td><td>Recommended</td></tr>
+<tr><td>Continued pretraining</td><td>Experiments only</td><td>Small models</td><td>Recommended</td></tr>
+</tbody></table></div>
+
+<div class="quiz"><h3>Check yourself</h3>
+<div class="q" data-correct="2"><p class="qt">What data does DPO need?</p><ol><li>Raw text documents</li><li>Prompts with a chosen and a rejected answer</li><li>Only prompts</li></ol><p class="why">It learns from better-versus-worse pairs.</p></div>
+<div class="q" data-correct="1"><p class="qt">Which method fits "make the model better at producing code that passes my tests"?</p><ol><li>RL with verifiable rewards, such as GRPO</li><li>Continued pretraining on novels</li><li>A longer system prompt only</li></ol><p class="why">Test results give an automatic reward signal.</p></div>
+</div>

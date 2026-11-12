@@ -1,0 +1,64 @@
+<!-- {"id": "ollama", "module": "4", "title": "Ollama on Windows: command line and server", "minutes": 13, "optional": false} -->
+<p class="lede">Ollama is the other popular way to run models. It has no chat window of its own, just a tiny command-line tool and a background server, which makes it the favourite for scripts and apps. Learning both tools makes you flexible.</p>
+<div class="goals"><h4>What you will learn</h4><ul>
+<li>Install Ollama and run a model in one command</li>
+<li>Use the everyday commands</li>
+<li>Know where models are stored and how to move them</li>
+<li>Set context length, which Ollama keeps small by default</li>
+</ul></div>
+
+<h2>Install</h2>
+<p>Download <code>OllamaSetup.exe</code> from <a href="https://ollama.com/download" target="_blank" rel="noopener">ollama.com/download</a>. It installs for your user account without needing administrator rights, starts in the background (look for the llama icon in the tray), and adds <code>ollama</code> to your terminal. The documentation lists Windows 10 22H2 or newer and NVIDIA driver 551.61 or newer. Or:</p>
+<pre data-lang="powershell"><code>winget install Ollama.Ollama</code></pre>
+
+<h2>First run</h2>
+<pre data-lang="powershell"><code>ollama run llama3.2</code></pre>
+<p>The first time, it downloads the model, then opens an interactive chat. Type <code>/bye</code> to leave. Browse the model list at <a href="https://ollama.com/library" target="_blank" rel="noopener">ollama.com/library</a>. Names look like <code>name:size</code>, for example <code>llama3.2:3b</code>. A name with no tag uses a default size.</p>
+
+<h2>Everyday commands</h2>
+<pre data-lang="powershell"><code>ollama pull MODEL        # download without chatting
+ollama list              # models on disk
+ollama ps                # models loaded now, with VRAM use and CPU/GPU split
+ollama show MODEL        # details: size, quantization, context, template
+ollama run MODEL --verbose   # prints speed after each reply
+ollama stop MODEL        # unload from memory
+ollama rm MODEL          # delete from disk</code></pre>
+<div class="box concept"><b>Concept: ollama ps is your friend</b>
+<p>The <code>PROCESSOR</code> column in <code>ollama ps</code> says for example <code>100% GPU</code> or <code>35%/65% CPU/GPU</code>. If any part says CPU, the model did not fully fit and you are in the slow spill zone from lesson 3.3.</p></div>
+
+<h2>Where the models live</h2>
+<p>By default in <code>%HOMEPATH%\.ollama</code>. Models are large, so many people move them to a bigger drive by setting a user environment variable, then restarting Ollama from the tray:</p>
+<pre data-lang="powershell"><code>[Environment]::SetEnvironmentVariable("OLLAMA_MODELS", "D:\ollama\models", "User")</code></pre>
+
+<h2>Context length</h2>
+<p>On GPUs with less than 24 GB of memory, Ollama has historically used a small default context window (around 4,096 tokens), which silently truncates long prompts. Raise it explicitly:</p>
+<pre data-lang="powershell"><code>[Environment]::SetEnvironmentVariable("OLLAMA_CONTEXT_LENGTH", "8192", "User")</code></pre>
+<p>Or inside a chat: <code>/set parameter num_ctx 8192</code>. Check the current Ollama docs for the exact default, which has changed between versions.</p>
+
+<h2>The server</h2>
+<p>Ollama's server listens on <code>http://localhost:11434</code>. Any program on your PC can call it. Lesson 6.2 shows how. By default it only accepts connections from your own machine, which is what you want.</p>
+<div class="box danger"><b>Do not expose it to the network</b>
+<p>Setting <code>OLLAMA_HOST=0.0.0.0</code> makes it reachable from other devices. The server has no login, so anyone who can reach it can use your GPU and your models. Only do this inside a trusted network or behind a proper authentication proxy.</p></div>
+
+<h2>Modelfiles</h2>
+<p>A <b>Modelfile</b> bundles a model with your settings and system prompt as a reusable custom model:</p>
+<pre data-lang="text"><code>FROM llama3.2
+SYSTEM You are a concise technical tutor. Answer in plain English.
+PARAMETER temperature 0.4
+PARAMETER num_ctx 8192</code></pre>
+<pre data-lang="powershell"><code>ollama create tutor -f Modelfile
+ollama run tutor</code></pre>
+
+<h2>LM Studio or Ollama?</h2>
+<div class="tw"><table><thead><tr><th></th><th>LM Studio</th><th>Ollama</th></tr></thead><tbody>
+<tr><td>Best for</td><td>Exploring, tuning, comparing</td><td>Scripts, apps, always-on server</td></tr>
+<tr><td>Interface</td><td>Full desktop app</td><td>Command line and API</td></tr>
+<tr><td>Model source</td><td>Hugging Face GGUF files</td><td>Its own library, plus import of GGUF</td></tr>
+<tr><td>Server port</td><td>1234</td><td>11434</td></tr>
+</tbody></table></div>
+<p>Using both is normal. Both can read GGUF files, and both offer an OpenAI-compatible API.</p>
+
+<div class="quiz"><h3>Check yourself</h3>
+<div class="q" data-correct="2"><p class="qt">Which command shows whether a loaded model is fully on the GPU?</p><ol><li><code>ollama list</code></li><li><code>ollama ps</code></li><li><code>ollama rm</code></li></ol><p class="why"><code>ollama ps</code> shows the GPU/CPU split for loaded models.</p></div>
+<div class="q" data-correct="3"><p class="qt">Why set the context length in Ollama explicitly?</p><ol><li>To change the model's weights</li><li>To make downloads faster</li><li>The default may be small and silently cut off long prompts</li></ol><p class="why">A small default window means anything past it is dropped.</p></div>
+</div>

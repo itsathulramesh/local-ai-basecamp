@@ -1,0 +1,46 @@
+<!-- {"id": "uncensored-safely", "module": "5", "title": "Using unrestricted models responsibly and safely", "minutes": 9, "optional": false} -->
+<p class="lede">A model with fewer guardrails shifts the responsibility to you. This lesson covers the practical rules: legal, safety, security and file hygiene.</p>
+<div class="goals"><h4>What you will learn</h4><ul>
+<li>Understand where the responsibility sits</li>
+<li>Apply security habits specific to these models</li>
+<li>Download and vet files safely</li>
+<li>Know when not to use one</li>
+</ul></div>
+
+<h2>Responsibility</h2>
+<p>Running a model locally is legal in essentially every country. What is regulated is what is done with the output. Fraud, harassment, defamation, child sexual abuse material, and help with serious violence are unlawful whether a person, a script or a model produced them. Laws differ by place, so check your own. This is general information, not legal advice. The cloud providers' policies do not apply on your PC, so the judgement is yours.</p>
+<div class="box danger"><b>Hard limits</b>
+<p>Do not use any model to create sexual content involving minors, to target or harass real people, to produce malware or fraud tools for use against others, or to help harm anyone. Beyond the legal risk, these are plainly wrong, and many hosting platforms will ban you.</p></div>
+
+<h2>Security habits</h2>
+<ul>
+<li><b>Keep the server local.</b> Do not bind Ollama or LM Studio to your network or the internet. An unauthenticated model server is a free GPU for strangers.</li>
+<li><b>Treat the model as untrusted.</b> It can be steered by text it reads (prompt injection). If you connect it to tools or files, it may follow instructions hidden in a web page or document. Without refusal training there is even less of a brake.</li>
+<li><b>Do not give it dangerous tools.</b> If you build an agent, limit what it can run and ask for confirmation before it deletes, sends or spends anything.</li>
+<li><b>Keep separate models for separate jobs.</b> Use a normal aligned model for anything public-facing or shared with other people.</li>
+</ul>
+
+<h2>File hygiene</h2>
+<ul>
+<li>Prefer GGUF and safetensors, as in lesson 3.2. Avoid pickle formats.</li>
+<li>Prefer well-known uploaders with many downloads and a documented base model.</li>
+<li>Check the licence. Fine-tunes inherit the base model's terms, and some bases restrict certain uses.</li>
+<li>Do not run extra "launcher" executables, scripts or cracks bundled with a model download.</li>
+<li>Where the uploader provides checksums, compare them. Download only from the official repository link, not from links in comments or forums.</li>
+<li>Test new models in LM Studio or Ollama, not in scripts with access to your files.</li>
+</ul>
+
+<h2>Good reasons not to use one</h2>
+<ul>
+<li>You need accuracy. Abliterated models can be less truthful (lesson 5.2).</li>
+<li>You are building something other people use. Keep guardrails in public products.</li>
+<li>A simple prompt fix would solve your problem.</li>
+</ul>
+
+<div class="box concept"><b>Concept: control and responsibility come together</b>
+<p>The point of local AI is control. The cost of control is that nobody else is checking. Good practice is to be your own safety layer: local-only server, limited tools, honest use.</p></div>
+
+<div class="quiz"><h3>Check yourself</h3>
+<div class="q" data-correct="2"><p class="qt">What is the most important network rule for a local model server?</p><ol><li>Make it public so you can reach it anywhere</li><li>Keep it bound to your own computer unless you add authentication</li><li>Disable your firewall</li></ol><p class="why">Local servers usually have no login, so exposing them gives strangers free access.</p></div>
+<div class="q" data-correct="3"><p class="qt">Which file would you trust least from an unknown uploader?</p><ol><li>A <code>.gguf</code> with a documented base model</li><li>A <code>.safetensors</code> from the original lab</li><li>A <code>.exe</code> "launcher" bundled with a model</li></ol><p class="why">Weights are data. Executables have no place in a model download.</p></div>
+</div>

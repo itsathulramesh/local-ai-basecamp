@@ -1,0 +1,83 @@
+<!-- {"id": "training-101", "module": "9", "title": "Training 101: LoRA, QLoRA and what fits your GPU", "minutes": 15, "optional": false} -->
+<p class="lede">This lesson turns the gradient-descent idea from lesson 7.1 into the practical facts of fine-tuning on a home NVIDIA GPU: why full training is out of reach, how LoRA makes it possible, and exactly how much VRAM you need.</p>
+<div class="goals"><h4>What you will learn</h4><ul>
+<li>Explain why full fine-tuning needs far more memory than inference</li>
+<li>Explain LoRA with the matrix picture, and count its parameters</li>
+<li>Explain QLoRA and when not to use it</li>
+<li>Size a training run for your own card</li>
+</ul></div>
+
+<h2>Why full fine-tuning does not fit</h2>
+<p>Training every weight of a model with the Adam optimizer needs, per weight: the weight itself, its gradient, and two running averages for Adam, plus a full-precision master copy in many setups. That is roughly 16 bytes per parameter. For a 9B model: about 150 GB, before counting the activations of your training text. No home GPU comes close.</p>
+
+<h2>LoRA: train a small patch</h2>
+<div class="box concept"><b>Concept: LoRA (Low-Rank Adaptation)</b>
+<p>Freeze every original weight. Next to each chosen matrix W, add two small trainable matrices, A and B. The layer now computes <code>W·x + (alpha/r) · B·(A·x)</code>. Only A and B are trained. Together they are the <b>adapter</b>: a file of tens of megabytes that you can keep, swap, stack or merge into W later.</p></div>
+<p>Think of the base model as a signed program you never modify, and the adapter as a patch file.</p>
+<h3>The matrix picture</h3>
+<pre data-lang="text"><code>  W (frozen): 4096 x 4096 = 16,777,216 numbers
+
+  A: 16 x 4096   =  65,536 trainable
+  B: 4096 x 16   =  65,536 trainable
+  LoRA total     = 131,072  (0.78% of W)
+
+  x (4096) --A--> 16 numbers --B--> 4096 numbers    (bottleneck width r = 16)</code></pre>
+<ul>
+<li><b>Rank r</b> is the width of that bottleneck: how many independent "directions of change" each adapter can learn. Typical values are 8 to 64.</li>
+<li><b>Alpha</b> scales the adapter's effect by <code>alpha / r</code>. Raising alpha acts like raising the learning rate for the adapter.</li>
+<li>B starts at zero, so at step 0 the adapter changes nothing and the model behaves exactly like the base.</li>
+</ul>
+<p>Across a whole 9B model, a rank-16 adapter on the MLP layers is about 25 million trainable parameters, around a quarter of one percent. The optimizer state for that is under half a gigabyte instead of 150 GB. That is the entire reason individuals can fine-tune at all.</p>
+
+<h3>Which matrices get adapters</h3>
+<p>The setting is called <b>target modules</b>. Current practice is to target both attention and MLP projections (<code>q_proj, k_proj, v_proj, o_proj, gate_proj, up_proj, down_proj</code>), which tends to beat attention-only LoRA. Hybrid models add their own names, such as <code>out_proj</code> for Qwen3.5's linear-attention layers. You met these names in lesson 7.2.</p>
+
+<h2>QLoRA: shrink the frozen part too</h2>
+<div class="box concept"><b>Concept: QLoRA</b>
+<p>LoRA on top of a base model held in 4-bit. The frozen weights take about a quarter of the memory. They are expanded on the fly for each calculation, while the small adapter stays in 16-bit and receives all the updates.</p></div>
+<p>QLoRA is the standard way to fit 7B to 8B models of many families (Llama, Gemma, Mistral) onto consumer cards. One important exception: Unsloth's guide for the <b>Qwen3.5</b> family says it does <b>not</b> recommend 4-bit QLoRA training for those models because of larger-than-normal quantization differences, and recommends 16-bit LoRA instead. Always check the current guide for the model family you train.</p>
+
+<h2>What fits your card</h2>
+<p>Unsloth's published figures for 16-bit LoRA on the Qwen3.5 family (approximate, at modest sequence length and batch size 1 to 2):</p>
+<div class="tw"><table><thead><tr><th>Model</th><th>VRAM for 16-bit LoRA</th><th>Fits on</th></tr></thead><tbody>
+<tr><td>Qwen3.5-0.8B</td><td class="num">≈ 3 GB</td><td>Almost any NVIDIA card, including 4 GB cards (tight)</td></tr>
+<tr><td>Qwen3.5-2B</td><td class="num">≈ 5 GB</td><td>8 GB cards</td></tr>
+<tr><td>Qwen3.5-4B</td><td class="num">≈ 10 GB</td><td>12 GB (tight), 16 GB comfortable</td></tr>
+<tr><td>Qwen3.5-9B</td><td class="num">≈ 22 GB</td><td>24 GB (tight, short sequences), or rent 40 to 48 GB</td></tr>
+</tbody></table></div>
+<p>For other families with QLoRA, 7B to 8B models typically need roughly 8 to 12 GB depending on sequence length. Check Unsloth's table for the exact model.</p>
+<div class="box warn"><b>Training is stricter than running</b>
+<p>Running a model can spill into system RAM (lesson 3.3). Training cannot do that usefully: the weights, adapter, gradients and activations all need to be in VRAM. So a 4 GB card that happily <i>runs</i> a 12B model can only <i>train</i> about 1B-class models.</p></div>
+<div class="box win"><b>On a 4 GB card (GTX 1650 and similar)</b>
+<ul>
+<li><b>Train locally</b>: models under about 1B, such as Qwen3.5-0.8B or Qwen3-0.6B, with short sequences (512 to 1,024 tokens) and batch size 1. Perfect for learning the whole pipeline.</li>
+<li><b>Train 2B to 4B for free</b> on Google Colab's 16 GB T4 GPU with Unsloth's notebooks, then download the GGUF and run it on your PC. A 4B fine-tune runs fully on your GPU; even a 9B one runs with offload.</li>
+<li><b>No bf16</b>: GTX 16-series and RTX 20-series cards (Turing) have no native bfloat16 support, so training uses float16 instead. Unsloth detects this automatically. The free Colab T4 is the same generation, which is why Unsloth's free notebooks work this way too.</li>
+</ul></div>
+<div class="box tip"><b>Memory levers when you run out</b>
+<ul>
+<li>Shorter <code>max_seq_length</code> (activations grow with it).</li>
+<li>Batch size 1 with more gradient accumulation steps.</li>
+<li>Gradient checkpointing (recompute instead of store). Unsloth enables its own version.</li>
+<li>An 8-bit optimizer (<code>adamw_8bit</code>).</li>
+<li>A smaller model. A well-trained 2B often beats a badly-fitted 9B.</li>
+</ul></div>
+
+<h2>The key settings in one table</h2>
+<div class="tw"><table><thead><tr><th>Setting</th><th>Meaning</th><th>Starting value</th></tr></thead><tbody>
+<tr><td>Learning rate</td><td>Step size (lesson 7.1)</td><td>2e-4 for short LoRA runs</td></tr>
+<tr><td>Epochs</td><td>Passes through the data</td><td>1 to 3</td></tr>
+<tr><td>Batch × accumulation</td><td>Examples per weight update</td><td>2 × 4 = 8</td></tr>
+<tr><td>Rank r / alpha</td><td>Adapter capacity / strength</td><td>16 / 16 (raise r to 32 for harder skills)</td></tr>
+<tr><td>Max sequence length</td><td>Token cap per example</td><td>Long enough for your longest example</td></tr>
+<tr><td>Warmup</td><td>Ramp the learning rate up gently at the start</td><td>5 to 10% of steps</td></tr>
+</tbody></table></div>
+
+<h2>Catastrophic forgetting</h2>
+<p>Training hard on a narrow task can erode general abilities: the model gets great at your JSON format and worse at everything else. LoRA forgets less than full fine-tuning, but it still happens. Protect against it with few epochs, a modest learning rate, some general examples mixed into your data, and a "regression set" of unrelated questions you check after training (lesson 9.5).</p>
+
+<div class="quiz"><h3>Check yourself</h3>
+<div class="q" data-correct="2"><p class="qt">Why does LoRA make fine-tuning possible on a home GPU?</p><ol><li>It removes the need for data</li><li>Only a tiny add-on is trained, so gradients and optimizer state are tiny</li><li>It runs on the CPU</li></ol><p class="why">Optimizer memory scales with trainable parameters, and LoRA cuts those to well under 1%.</p></div>
+<div class="q" data-correct="3"><p class="qt">You want to fine-tune Qwen3.5-4B on a 12 GB card. Which setup matches Unsloth's guidance?</p><ol><li>4-bit QLoRA, to save memory</li><li>Full fine-tuning</li><li>16-bit LoRA with short sequences and batch size 1</li></ol><p class="why">Unsloth advises against QLoRA for Qwen3.5. About 10 GB is needed, so keep activations small.</p></div>
+<div class="q" data-correct="1"><p class="qt">At training step 0, how does a LoRA model behave?</p><ol><li>Exactly like the base model, because B starts at zero</li><li>Randomly</li><li>It refuses everything</li></ol><p class="why">B·A is zero until training grows it.</p></div>
+</div>

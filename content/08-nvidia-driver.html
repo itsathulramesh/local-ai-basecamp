@@ -1,0 +1,55 @@
+<!-- {"id": "nvidia-driver", "module": "2", "title": "NVIDIA driver, CUDA and checking that the GPU works", "minutes": 9, "optional": false} -->
+<p class="lede">Most "my GPU is not being used" problems come from the driver. This lesson gets the foundations right and explains the CUDA jargon that confuses everyone.</p>
+<div class="goals"><h4>What you will learn</h4><ul>
+<li>Install or update the NVIDIA driver</li>
+<li>Read the output of <code>nvidia-smi</code></li>
+<li>Know when you need the CUDA Toolkit and when you do not</li>
+<li>Watch VRAM use live while a model runs</li>
+</ul></div>
+
+<h2>Driver first</h2>
+<p>The <b>driver</b> is the software that lets Windows and apps talk to the card. For LM Studio and Ollama, a reasonably current driver is all you need. Ollama's Windows documentation lists NVIDIA driver 551.61 or newer as the minimum, and newer cards such as the RTX 50 series need much newer drivers anyway, so simply update to the latest.</p>
+<div class="box win"><b>On your PC</b>
+<ol>
+<li>Open the <b>NVIDIA app</b> (or GeForce Experience) and let it install the latest <b>Game Ready</b> or <b>Studio</b> driver. Either works for AI.</li>
+<li>Or download directly from <a href="https://www.nvidia.com/Download/index.aspx" target="_blank" rel="noopener">nvidia.com/Download</a> by choosing your card.</li>
+<li>Restart if asked.</li>
+</ol></div>
+
+<h2>Check it with nvidia-smi</h2>
+<p>Open <b>Windows Terminal</b> or PowerShell and run:</p>
+<pre data-lang="powershell"><code>nvidia-smi</code></pre>
+<p>You get a table. The parts to read:</p>
+<ul>
+<li><b>Driver Version</b>: what is installed.</li>
+<li><b>CUDA Version</b>: the <i>highest</i> CUDA version this driver supports. It does <b>not</b> mean CUDA is installed.</li>
+<li><b>Memory-Usage</b>: for example <code>1200MiB / 12288MiB</code>, meaning used and total VRAM. Windows and your browser already use some.</li>
+<li><b>GPU-Util</b>: how busy the GPU is. It jumps while a model generates.</li>
+</ul>
+<p>To watch it update once a second while you chat with a model:</p>
+<pre data-lang="powershell"><code>nvidia-smi -l 1</code></pre>
+<div class="box concept"><b>Concept: you will see the model in VRAM</b>
+<p>Load a model and run this command in another window. Memory-Usage jumps by roughly the model size plus its context cache. This is the quickest way to confirm the model is really on the GPU, and you will use it to check the calculators in module 3.</p></div>
+
+<h2>CUDA, cuDNN and the toolkit: what you need</h2>
+<div class="tw"><table><thead><tr><th>What you want to do</th><th>Install CUDA Toolkit?</th></tr></thead><tbody>
+<tr><td>Run models with LM Studio or Ollama</td><td>No. They ship their own GPU libraries.</td></tr>
+<tr><td>Train or run models with PyTorch from pip</td><td>No. The PyTorch download bundles the CUDA runtime it needs. You only need a recent enough driver.</td></tr>
+<tr><td>Compile llama.cpp or other CUDA code yourself</td><td>Yes. Install the Toolkit from NVIDIA.</td></tr>
+</tbody></table></div>
+<div class="box warn"><b>Do not install everything "just in case"</b>
+<p>Beginners often install several CUDA versions and end up with confusing conflicts. Install only what the task in front of you requires.</p></div>
+
+<h2>If the GPU is not being used</h2>
+<ul>
+<li>Update the driver and restart.</li>
+<li>Close other heavy VRAM users such as games, video editors and many browser tabs with hardware acceleration.</li>
+<li>On a laptop, make sure the app is set to use the NVIDIA GPU, not the integrated one.</li>
+<li>Check the app's runtime setting. In LM Studio this is the CUDA runtime under the runtimes settings. In Ollama the server log shows which GPU it found.</li>
+<li>Check that the model is not so large that the app chose CPU instead.</li>
+</ul>
+
+<div class="quiz"><h3>Check yourself</h3>
+<div class="q" data-correct="2"><p class="qt"><code>nvidia-smi</code> shows "CUDA Version: 13.0". What does that tell you?</p><ol><li>CUDA Toolkit 13.0 is installed</li><li>Your driver supports up to CUDA 13.0</li><li>Your GPU has 13 GB of VRAM</li></ol><p class="why">It is the maximum supported by the driver, not an installed toolkit.</p></div>
+<div class="q" data-correct="3"><p class="qt">Do you need to install the CUDA Toolkit to use LM Studio?</p><ol><li>Yes, always</li><li>Yes, but only version 11</li><li>No, it ships its own libraries</li></ol><p class="why">You only need the driver. The Toolkit is for compiling CUDA code yourself.</p></div>
+</div>

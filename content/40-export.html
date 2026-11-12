@@ -1,0 +1,97 @@
+<!-- {"id": "export", "module": "9", "title": "Export: merge, convert to GGUF, run in LM Studio and Ollama", "minutes": 15, "optional": false} -->
+<p class="lede">Your adapter is trained. LM Studio and Ollama run GGUF files. This lesson covers the quick export Unsloth already did for you, the manual route with llama.cpp when you need control, keeping the chat template intact, and a checklist before you replace your daily model.</p>
+<div class="goals"><h4>What you will learn</h4><ul>
+<li>Choose between a merged model and a separate adapter</li>
+<li>Merge, convert and quantize manually with PEFT and llama.cpp</li>
+<li>Import into LM Studio and Ollama</li>
+<li>Verify the chat template and run a sanity checklist</li>
+</ul></div>
+
+<h2>The map</h2>
+<div class="tw"><table><thead><tr><th>Route</th><th>Steps</th><th>Use when</th></tr></thead><tbody>
+<tr><td>1. Unsloth one-liner</td><td><code>save_pretrained_gguf(..., "q4_k_m")</code> in your training script</td><td>Most of the time</td></tr>
+<tr><td>2. Manual merge</td><td>PEFT merge → <code>convert_hf_to_gguf.py</code> → <code>llama-quantize</code></td><td>You want an importance matrix, a different quantization, or the one-liner failed</td></tr>
+<tr><td>3. Separate adapter</td><td><code>convert_lora_to_gguf.py</code> → Ollama <code>ADAPTER</code> or <code>llama-server --lora</code></td><td>You want to switch adapters on and off, or apply one to a close derivative model</td></tr>
+</tbody></table></div>
+
+<div class="box concept"><b>Concept: merging</b>
+<p>Computing <code>W' = W + (alpha/r) · B·A</code> for every adapted matrix and saving the result as ordinary weights. The merged model is the same size and speed as the base. Always merge into a <b>16-bit</b> base and quantize once afterwards. Merging into an already-quantized base rounds your small changes on top of the existing rounding error.</p></div>
+
+<h2>Route 1: copy the Unsloth GGUF out of WSL</h2>
+<pre data-lang="bash"><code>ls -lh ~/ai-lab/finetune/my-first-lora-gguf/
+mkdir -p /mnt/c/Users/$USER_WINDOWS/ai-lab/models
+cp ~/ai-lab/finetune/my-first-lora-gguf/*Q4_K_M*.gguf /mnt/c/Users/$USER_WINDOWS/ai-lab/models/</code></pre>
+
+<h2>Route 2: the manual path</h2>
+<h3>Merge with PEFT</h3>
+<pre data-lang="python"><code>"""merge_lora.py: merge a LoRA adapter into its 16-bit base."""
+import sys, torch
+from peft import PeftModel
+from transformers import AutoModelForCausalLM, AutoTokenizer
+
+BASE, ADAPTER, OUT = "unsloth/Qwen3.5-2B", "my-first-lora", "my-first-merged"
+base = AutoModelForCausalLM.from_pretrained(BASE, dtype=torch.bfloat16)
+model = PeftModel.from_pretrained(base, ADAPTER)
+n = sum(1 for name, _ in model.named_modules() if name.endswith("lora_A"))
+if n == 0:
+    sys.exit("No LoRA layers injected: module names did not match. Merge where you trained.")
+print("LoRA layers injected:", n)
+model.merge_and_unload().save_pretrained(OUT)
+AutoTokenizer.from_pretrained(BASE).save_pretrained(OUT)   # keeps the chat template</code></pre>
+<div class="box warn"><b>The injected-layer check matters</b>
+<p>If the model class differs from the one used in training (for example a text-only class versus a multimodal one), PEFT may silently attach nothing and you would ship the unmodified base. Merge in the same environment that trained the adapter, or use Unsloth's <code>save_pretrained_merged(OUT, tokenizer, save_method="merged_16bit")</code>.</p></div>
+
+<h3>Build llama.cpp (once, inside WSL2)</h3>
+<pre data-lang="bash"><code>cd ~/ai-lab && git clone https://github.com/ggml-org/llama.cpp && cd llama.cpp
+cmake -B build                 # CPU build is enough for converting and quantizing
+cmake --build build --config Release -j
+python3 -m venv .venv && source .venv/bin/activate
+pip install -r requirements.txt && pip install -U transformers</code></pre>
+<p>Newer models need a newer Transformers than llama.cpp's pinned requirements, hence the last install. Prebuilt Windows binaries (including CUDA builds) are also published on the llama.cpp GitHub releases page if you prefer running tools natively.</p>
+
+<h3>Convert and quantize</h3>
+<pre data-lang="bash"><code>python convert_hf_to_gguf.py ~/ai-lab/finetune/my-first-merged --outtype bf16 \
+  --outfile ~/ai-lab/finetune/mine-BF16.gguf
+./build/bin/llama-quantize ~/ai-lab/finetune/mine-BF16.gguf ~/ai-lab/finetune/mine-Q4_K_M.gguf Q4_K_M</code></pre>
+<p>Always quantize from the 16-bit file, never from another quantized file. If the converter says the architecture is unknown, your llama.cpp checkout is too old: <code>git pull</code> and rebuild.</p>
+<h3>Optional: an importance matrix</h3>
+<p>An <b>imatrix</b> records which weights matter most on sample text so 4-bit quantization spends its precision wisely. For a fine-tune, use text that looks like its job (your training conversations plus some general text):</p>
+<pre data-lang="bash"><code>./build/bin/llama-imatrix -m ~/ai-lab/finetune/mine-BF16.gguf -f calibration.txt -o imatrix.gguf -ngl 99
+./build/bin/llama-quantize --imatrix imatrix.gguf ~/ai-lab/finetune/mine-BF16.gguf mine-Q4_K_M.gguf Q4_K_M</code></pre>
+<p><code>-ngl 99</code> needs a CUDA build (<code>cmake -B build -DGGML_CUDA=ON</code>, with the CUDA toolkit installed in WSL). On a CPU build, drop it and be patient.</p>
+
+<h2>Route 3: keep the adapter separate</h2>
+<pre data-lang="bash"><code>python convert_lora_to_gguf.py ~/ai-lab/finetune/my-first-lora \
+  --base-model-id unsloth/Qwen3.5-2B --outtype f16 --outfile ~/ai-lab/finetune/mine-lora-F16.gguf</code></pre>
+<p>Then use it with Ollama's <code>ADAPTER</code> (lesson 8.2), or with llama.cpp's server, where you can also scale it:</p>
+<pre data-lang="bash"><code>./build/bin/llama-server -m base-Q8_0.gguf --lora-scaled mine-lora-F16.gguf:0.7 --host 127.0.0.1 --port 8081</code></pre>
+
+<h2>Import and run</h2>
+<pre data-lang="powershell"><code># LM Studio
+lms import $HOME\ai-lab\models\mine-Q4_K_M.gguf --copy --user-repo me/mine
+lms ls
+# Ollama: Modelfile with  FROM ./mine-Q4_K_M.gguf
+ollama create mine -f Modelfile</code></pre>
+<p>If the base model supported images, copy its <code>mmproj</code> file into the same LM Studio model folder. Your LoRA did not touch the vision encoder, so the base model's file still works.</p>
+
+<h2>Check the chat template inside the GGUF</h2>
+<pre data-lang="python"><code>"""show_template.py: print the chat template stored in a GGUF."""
+import sys
+from gguf import GGUFReader      # pip install gguf
+field = GGUFReader(sys.argv[1]).fields.get("tokenizer.chat_template")
+print(field.contents()[:1500] if field else "No chat template: the runtime will guess.")</code></pre>
+<p>Then watch what LM Studio actually sends: run <code>lms log stream</code> and send a message. The formatted prompt should match the template you trained with (lesson 7.3).</p>
+
+<h2>Ship-readiness checklist</h2>
+<label class="ck"><input type="checkbox" data-k="ex-1"><span>File size and speed are similar to the base model at the same quantization</span></label>
+<label class="ck"><input type="checkbox" data-k="ex-2"><span>The template prints correctly and the log shows the right markers</span></label>
+<label class="ck"><input type="checkbox" data-k="ex-3"><span>Short answers stop cleanly, with no leaked end-of-turn tokens</span></label>
+<label class="ck"><input type="checkbox" data-k="ex-4"><span>The thinking setting behaves as trained</span></label>
+<label class="ck"><input type="checkbox" data-k="ex-5"><span>The trained habits show on test prompts</span></label>
+<label class="ck"><input type="checkbox" data-k="ex-6"><span>General ability holds on the regression set (lesson 9.5)</span></label>
+<p></p>
+
+<div class="quiz"><h3>Check yourself</h3>
+<div class="q" data-correct="3"><p class="qt">Why merge into a 16-bit base and quantize afterwards?</p><ol><li>It is faster to download</li><li>Quantized bases cannot be loaded</li><li>Merging into quantized weights re-rounds the small LoRA changes and can wash them out</li></ol><p class="why">Merge once in high precision, then quantize once.</p></div>
+<div class="q" data-correct="2"><p class="qt">The merge script prints "LoRA layers injected: 0". What happened?</p><ol><li>Training failed</li><li>Module names did not match, so nothing was applied</li><li>The adapter is too small</li></ol><p class="why">Without this check you would ship the unchanged base model.</p></div>
+</div>

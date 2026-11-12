@@ -1,0 +1,53 @@
+<!-- {"id": "editing-merging", "module": "10", "title": "Knowledge editing and model merging", "minutes": 10, "optional": true} -->
+<p class="lede">Two more ways to change weights without a full training run: surgically rewriting a single fact, and blending several fine-tunes into one model. Both are useful to know about, and merging in particular is popular in the open-model community.</p>
+<div class="goals"><h4>What you will learn</h4><ul>
+<li>Explain how ROME and MEMIT rewrite facts, and their limits</li>
+<li>Explain task arithmetic and the main merge methods</li>
+<li>Know when merging beats another fine-tune</li>
+</ul></div>
+
+<h2>MLPs as key-value memories</h2>
+<p>Lesson 7.2 mentioned that MLPs behave a bit like memories: a pattern in the input (the key, such as "the capital of France is") retrieves a stored output (the value, "Paris"). Knowledge-editing methods use this view.</p>
+
+<h2>ROME and MEMIT</h2>
+<ul>
+<li><b>ROME</b> (2022) locates the MLP layer that stores a fact and applies a rank-one update to its weights so one key retrieves a new value. Change "the Eiffel Tower is in Paris" to "Rome" and related questions follow.</li>
+<li><b>MEMIT</b> extends this to thousands of edits at once across several layers.</li>
+</ul>
+<div class="box warn"><b>Limits</b>
+<p>Edits can be brittle: they may not carry over to rephrased questions or related facts, and many edits can degrade the model. For keeping a model up to date with facts, RAG remains the practical answer (lesson 8.1). Treat knowledge editing as a research tool.</p></div>
+
+<h2>Task arithmetic</h2>
+<p>If you fine-tune a base model and subtract the base weights from the result, you get a <b>task vector</b>: the change that skill made. Task vectors can be added (combine skills), scaled (stronger or weaker), or subtracted (remove a behaviour). A LoRA adapter is a compact, low-rank task vector.</p>
+
+<h2>Model merging</h2>
+<p>Merging combines models that share the same base and architecture into one, with no training.</p>
+<div class="tw"><table><thead><tr><th>Method</th><th>Idea</th></tr></thead><tbody>
+<tr><td>Linear</td><td>Weighted average of the weights</td></tr>
+<tr><td>SLERP</td><td>Interpolates two models along a curve instead of a straight line, often smoother</td></tr>
+<tr><td>TIES</td><td>Keeps only the largest changes from each fine-tune and resolves sign conflicts</td></tr>
+<tr><td>DARE</td><td>Randomly drops most small changes and rescales the rest before merging</td></tr>
+</tbody></table></div>
+<p>The common tool is <b>mergekit</b>. A merge is described in a small YAML file listing the models, the method and the weights, and runs on CPU if needed. Many popular community models on Hugging Face are merges.</p>
+<pre data-lang="text"><code># mergekit example (check its README for current syntax)
+merge_method: ties
+base_model: Qwen/Qwen3-4B
+models:
+  - model: you/qwen3-4b-housestyle-merged
+    parameters: {weight: 0.6, density: 0.5}
+  - model: someone/qwen3-4b-coder-finetune
+    parameters: {weight: 0.4, density: 0.5}
+dtype: bfloat16</code></pre>
+
+<h2>When to merge</h2>
+<ul>
+<li>You have two fine-tunes of the same base (for example your house style and a coding skill) and want both.</li>
+<li>You want to soften a fine-tune by merging it back toward the base.</li>
+<li>Combining several LoRA adapters: PEFT can merge adapters (<code>add_weighted_adapter</code>), and llama.cpp's server can stack several at chosen scales.</li>
+</ul>
+<p>Evaluate a merge exactly like a fine-tune (lesson 9.5). Merges can be surprisingly good or quietly broken.</p>
+
+<div class="quiz"><h3>Check yourself</h3>
+<div class="q" data-correct="3"><p class="qt">Can you merge a Llama fine-tune with a Qwen fine-tune?</p><ol><li>Yes, with SLERP</li><li>Yes, with TIES</li><li>No. Merged models must share the same base architecture.</li></ol><p class="why">Weights only line up between models of the same architecture and base.</p></div>
+<div class="q" data-correct="1"><p class="qt">What is a task vector?</p><ol><li>Fine-tuned weights minus base weights</li><li>A list of tasks</li><li>A steering vector</li></ol><p class="why">It captures the change a fine-tune made, and can be added, scaled or subtracted.</p></div>
+</div>

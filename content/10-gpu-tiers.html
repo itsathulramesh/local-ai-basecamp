@@ -1,0 +1,72 @@
+<!-- {"id": "gpu-tiers", "module": "2", "title": "What your PC can run: the tier map", "minutes": 11, "optional": false} -->
+<p class="lede">This lesson is a first map. Find your row and you will know roughly which models run fast, which run with help from system RAM, and which are out of reach. Module 3 then teaches you to compute it exactly.</p>
+<div class="goals"><h4>What you will learn</h4><ul>
+<li>Know what size of model runs fully on the GPU, and what runs with GPU + RAM offload</li>
+<li>Read a real example: a 4 GB GTX 1650 laptop with 16 GB RAM</li>
+<li>Understand the idea of "dense" and "mixture-of-experts" models</li>
+<li>Have a plan for your own card</li>
+</ul></div>
+
+<h2>The tier map</h2>
+<p>These are practical ranges for a typical 4-bit "Q4_K_M" version of a model (lesson 3.1 explains that term) with a moderate context and <b>16 GB of system RAM</b>. "Fast" means fully on the GPU. "With offload" means part of the model runs from system RAM: it works, at a few tokens per second. More RAM raises the offload ceiling.</p>
+<div class="tw"><table><thead><tr><th>Your VRAM</th><th>Fast (fully on GPU)</th><th>With GPU + RAM offload</th><th>Example cards</th></tr></thead><tbody>
+<tr><td>4 GB</td><td>1B to 4B</td><td>7B to 12B work well, 14B is experimental, about 20B is the ceiling with 16 GB RAM</td><td>GTX 1650, RTX 3050 laptop</td></tr>
+<tr><td>6 GB</td><td>Up to about 7B</td><td>8B to 14B, about 20B is the ceiling</td><td>GTX 1660, RTX 2060, RTX 4050 laptop</td></tr>
+<tr><td>8 GB</td><td>7B to 9B</td><td>12B to 20B</td><td>RTX 3060 Ti, 4060, 5060</td></tr>
+<tr><td>12 GB</td><td>9B at higher quality, 12B to 14B</td><td>20B to 27B</td><td>RTX 3060 12 GB, 4070, 5070</td></tr>
+<tr><td>16 GB</td><td>14B at good quality, 20B-class models</td><td>27B to 32B</td><td>RTX 4060 Ti 16 GB, 4080, 5060 Ti 16 GB, 5070 Ti, 5080</td></tr>
+<tr><td>24 GB</td><td>27B to 32B dense, 30B-class mixture-of-experts</td><td>70B with 32 GB+ RAM, slowly</td><td>RTX 3090, 4090</td></tr>
+<tr><td>32 GB</td><td>Same as 24 GB with long context and higher quality</td><td>70B with 32 GB+ RAM</td><td>RTX 5090</td></tr>
+</tbody></table></div>
+
+<h3>Check your own PC</h3>
+<div class="widget" data-widget="gpupick"></div>
+
+<h2>Worked example: GTX 1650 (4 GB) laptop, 16 GB RAM</h2>
+<p>A real setup: Intel Core i5 11th-gen H-series, 16 GB RAM, GTX 1650 with 4 GB VRAM, Windows 11. Gemma 3 12B at Q4 (a file of about 7 GB) runs fine on it, even though the file is larger than the VRAM, because about a third of the model sits on the GPU and the rest runs from RAM.</p>
+<div class="tw"><table><thead><tr><th>Model size</th><th>How well it runs</th><th>Good for</th></tr></thead><tbody>
+<tr><td>1B to 3B</td><td>Excellent, fully on the GPU</td><td>Fast experimentation</td></tr>
+<tr><td>4B</td><td>Very good</td><td>Everyday local AI</td></tr>
+<tr><td>7B to 8B</td><td>Good with GPU + RAM offload</td><td>Chat, coding, RAG</td></tr>
+<tr><td>12B</td><td>Works, a few tokens per second</td><td>More capable chat and reasoning</td></tr>
+<tr><td>14B</td><td>Experimental, needs careful quantization</td><td>Testing</td></tr>
+<tr><td>20B and above</td><td>Not recommended</td><td>RAM and speed limits</td></tr>
+</tbody></table></div>
+<p>A sensible model kit for this PC:</p>
+<div class="tw"><table><thead><tr><th>Purpose</th><th>Model</th><th>Size</th></tr></thead><tbody>
+<tr><td>General chat</td><td>Qwen3</td><td>4B</td></tr>
+<tr><td>Reasoning and harder chat</td><td>Gemma 3</td><td>12B</td></tr>
+<tr><td>Coding</td><td>Qwen2.5 Coder</td><td>7B</td></tr>
+<tr><td>Lightweight experiments</td><td>Llama 3.2</td><td>3B</td></tr>
+<tr><td>Embeddings for RAG</td><td>nomic-embed-text</td><td>137M</td></tr>
+</tbody></table></div>
+<p>And which size to use while working through this course: 3B to 4B for setup, prompting, settings, RAG and tool calling (fast feedback matters more than raw quality), and 7B to 12B when you study quantization, offloading and speed. Training on this card is covered in lesson 9.1.</p>
+<div class="box tip"><b>Laptops with a 4 GB card</b>
+<p>On most laptops the NVIDIA GPU does not drive the screen, so nearly all 4 GB is available for models. Plug in the charger: on battery the GPU slows down a lot.</p></div>
+
+<div class="box concept"><b>Concept: dense vs mixture-of-experts (MoE)</b>
+<p>A <b>dense</b> model uses all its parameters for every token. A <b>mixture-of-experts</b> model has many specialist "experts" but only activates a few per token. A name like "35B-A3B" means 35 billion total, 3 billion active. Two consequences: all 35 billion must still be stored (so memory is sized by the <i>total</i>), but each token only reads the active part, so it can generate much faster than a dense model of the same size.</p></div>
+
+<h2>Example models in each size class (late 2026)</h2>
+<p>Several recent guides published in October 2026 recommend these as sensible fits. Names change quickly, so treat them as examples of a size class and check what is newest.</p>
+<ul>
+<li><b>8 GB:</b> Qwen3.5 9B at Q4_K_M (about 5.6 GB), Gemma 4 E4B.</li>
+<li><b>12 GB:</b> Gemma 4 12B at Q4 (about 7 GB), Qwen3.5 9B at higher quality.</li>
+<li><b>16 GB:</b> gpt-oss-20b (about 12 GB in its native 4-bit format), Gemma 4 12B at Q8.</li>
+<li><b>24 to 32 GB:</b> 27B to 35B models such as Qwen's 27B dense and 35B-A3B mixture-of-experts, Gemma 4 26B and 31B.</li>
+</ul>
+<div class="box warn"><b>No big GPU? You are not locked out</b>
+<p>CPU-only and small-VRAM machines can still learn everything in this course using 1B to 4B models. They are surprisingly capable for summaries, rewriting, extraction and learning how it all works. For training later, rented cloud GPUs are cheap per hour (lesson 9.3).</p></div>
+
+<h3>Your plan</h3>
+<p>Write these three lines in <code>NOTES.md</code>:</p>
+<ol>
+<li>My GPU and VRAM: …</li>
+<li>The biggest model that runs fully on my GPU, and the biggest that runs with offload: …</li>
+<li>The model sizes I will use: a small fast one for learning, a bigger one for quality</li>
+</ol>
+
+<div class="quiz"><h3>Check yourself</h3>
+<div class="q" data-correct="2"><p class="qt">"Qwen3.5-35B-A3B" is a mixture-of-experts model. Which number sets how much memory you must have?</p><ol><li>3 billion (active)</li><li>35 billion (total)</li><li>The context length only</li></ol><p class="why">All experts must be stored. Only the active ones are read for each token, which helps speed, not memory.</p></div>
+<div class="q" data-correct="1"><p class="qt">With 8 GB of VRAM, which is the most sensible first choice?</p><ol><li>A 7B to 9B model at Q4</li><li>A 70B model at Q8</li><li>A 30B dense model at FP16</li></ol><p class="why">A 7B to 9B Q4 model is about 4 to 6 GB, leaving room for context.</p></div>
+</div>

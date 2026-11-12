@@ -1,0 +1,173 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>10.3 Direction ablation and abliteration: editing weights · Local AI Basecamp</title>
+<meta name="description" content="Steering adds a direction while the model runs. Ablation removes a direction permanently, by editing the weights so no layer can ever write it. Aimed at the refusal direction, this is abliteration, the most common way uncensored models are made. This lesson teaches the maths, then gives you a script that does it.">
+<meta property="og:title" content="10.3 Direction ablation and abliteration: editing weights · Local AI Basecamp">
+<meta property="og:description" content="Steering adds a direction while the model runs. Ablation removes a direction permanently, by editing the weights so no layer can ever write it. Aimed at the refusal direction, this is abliteration, the most common way uncensored models are made. This lesson teaches the maths, then gives you a script that does it.">
+<link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&amp;family=Inter:wght@400;500;600&amp;family=JetBrains+Mono:wght@400;500&amp;display=swap">
+<link rel="stylesheet" href="../assets/css/style.css">
+<script>try{var t=localStorage.getItem('basecamp-theme');if(t==='light'||t==='dark')document.documentElement.setAttribute('data-theme',t)}catch(e){}</script>
+</head>
+<body data-root="../" data-page="ablation">
+<a class="skip" href="#view">Skip to content</a>
+<div class="app">
+  <aside class="rail" id="rail" aria-label="Course map">
+    <a class="brand" href="../index.html"><span class="brand-mark"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 20 10 7l4 6 2-3 5 10z"/></svg></span><span><b>Local AI Basecamp</b><small>from zero to your own model</small></span></a>
+    <div class="prog"><div class="row"><span id="progText">Core lessons</span><span id="progPct"></span></div><div class="meter"><i id="progBar"></i></div></div>
+    <nav id="nav"><div class="mod" data-m="0"><button class="mod-h" type="button" aria-expanded="false"><svg class="chev" width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M4 2l4 4-4 4"/></svg><span class="n"></span><span>Start here</span><span class="c" data-count="0"></span></button><ul><li data-id="welcome"><a href="../lessons/welcome.html"><span class="dot"></span><span>Welcome and how to use this course</span></a></li></ul></div><div class="mod" data-m="1"><button class="mod-h" type="button" aria-expanded="false"><svg class="chev" width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M4 2l4 4-4 4"/></svg><span class="n">1</span><span>AI in plain English</span><span class="c" data-count="1"></span></button><ul><li data-id="what-is-ai"><a href="../lessons/what-is-ai.html"><span class="dot"></span><span><span class="ln">1.1</span> What AI, machine learning and LLMs actually are</span></a></li><li data-id="open-vs-closed"><a href="../lessons/open-vs-closed.html"><span class="dot"></span><span><span class="ln">1.2</span> Cloud AI vs local AI: closed, open-weight and open-source</span></a></li><li data-id="train-vs-infer"><a href="../lessons/train-vs-infer.html"><span class="dot"></span><span><span class="ln">1.3</span> Training vs inference: what your PC will actually do</span></a></li><li data-id="tokens-context"><a href="../lessons/tokens-context.html"><span class="dot"></span><span><span class="ln">1.4</span> Tokens and the context window (the model&#x27;s memory)</span></a></li><li data-id="why-local"><a href="../lessons/why-local.html"><span class="dot"></span><span><span class="ln">1.5</span> Why run AI locally, and what to expect</span></a></li></ul></div><div class="mod" data-m="2"><button class="mod-h" type="button" aria-expanded="false"><svg class="chev" width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M4 2l4 4-4 4"/></svg><span class="n">2</span><span>Your PC</span><span class="c" data-count="2"></span></button><ul><li data-id="pc-hardware"><a href="../lessons/pc-hardware.html"><span class="dot"></span><span><span class="ln">2.1</span> Your PC: CPU, RAM, GPU and VRAM</span></a></li><li data-id="nvidia-driver"><a href="../lessons/nvidia-driver.html"><span class="dot"></span><span><span class="ln">2.2</span> NVIDIA driver, CUDA and checking that the GPU works</span></a></li><li data-id="windows-dev-setup"><a href="../lessons/windows-dev-setup.html"><span class="dot"></span><span><span class="ln">2.3</span> Windows toolbox: terminal, Python, Git and optional WSL2</span></a></li><li data-id="gpu-tiers"><a href="../lessons/gpu-tiers.html"><span class="dot"></span><span><span class="ln">2.4</span> What your PC can run: the tier map</span></a></li></ul></div><div class="mod" data-m="3"><button class="mod-h" type="button" aria-expanded="false"><svg class="chev" width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M4 2l4 4-4 4"/></svg><span class="n">3</span><span>Model files and the memory math</span><span class="c" data-count="3"></span></button><ul><li data-id="quantization"><a href="../lessons/quantization.html"><span class="dot"></span><span><span class="ln">3.1</span> Parameters, precision and quantization</span></a></li><li data-id="file-formats"><a href="../lessons/file-formats.html"><span class="dot"></span><span><span class="ln">3.2</span> Model file formats: GGUF, safetensors and friends</span></a></li><li data-id="will-it-fit"><a href="../lessons/will-it-fit.html"><span class="dot"></span><span><span class="ln">3.3</span> Will it fit? The VRAM and RAM calculator</span></a></li><li data-id="speed"><a href="../lessons/speed.html"><span class="dot"></span><span><span class="ln">3.4</span> Speed: tokens per second and what limits it</span></a></li></ul></div><div class="mod" data-m="4"><button class="mod-h" type="button" aria-expanded="false"><svg class="chev" width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M4 2l4 4-4 4"/></svg><span class="n">4</span><span>Run your first models</span><span class="c" data-count="4"></span></button><ul><li data-id="lm-studio"><a href="../lessons/lm-studio.html"><span class="dot"></span><span><span class="ln">4.1</span> Your first local model with LM Studio</span></a></li><li data-id="settings-guide"><a href="../lessons/settings-guide.html"><span class="dot"></span><span><span class="ln">4.2</span> Settings that matter: load options and sampling</span></a></li><li data-id="ollama"><a href="../lessons/ollama.html"><span class="dot"></span><span><span class="ln">4.3</span> Ollama on Windows: command line and server</span></a></li><li data-id="hugging-face"><a href="../lessons/hugging-face.html"><span class="dot"></span><span><span class="ln">4.4</span> Hugging Face: finding and judging models</span></a></li><li data-id="choose-model"><a href="../lessons/choose-model.html"><span class="dot"></span><span><span class="ln">4.5</span> Choosing the right model for the job</span></a></li><li data-id="troubleshooting"><a href="../lessons/troubleshooting.html"><span class="dot"></span><span><span class="ln">4.6</span> Troubleshooting: when it is slow, broken or strange <span class="opt">Optional</span></span></a></li></ul></div><div class="mod" data-m="5"><button class="mod-h" type="button" aria-expanded="false"><svg class="chev" width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M4 2l4 4-4 4"/></svg><span class="n">5</span><span>Aligned vs uncensored models</span><span class="c" data-count="5"></span></button><ul><li data-id="why-refusals"><a href="../lessons/why-refusals.html"><span class="dot"></span><span><span class="ln">5.1</span> Why models refuse: alignment explained</span></a></li><li data-id="what-uncensored"><a href="../lessons/what-uncensored.html"><span class="dot"></span><span><span class="ln">5.2</span> What &quot;uncensored&quot; and &quot;abliterated&quot; models really are</span></a></li><li data-id="uncensored-safely"><a href="../lessons/uncensored-safely.html"><span class="dot"></span><span><span class="ln">5.3</span> Using unrestricted models responsibly and safely</span></a></li></ul></div><div class="mod" data-m="6"><button class="mod-h" type="button" aria-expanded="false"><svg class="chev" width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M4 2l4 4-4 4"/></svg><span class="n">6</span><span>Use it for real</span><span class="c" data-count="6"></span></button><ul><li data-id="prompting"><a href="../lessons/prompting.html"><span class="dot"></span><span><span class="ln">6.1</span> Prompting small local models well</span></a></li><li data-id="local-api"><a href="../lessons/local-api.html"><span class="dot"></span><span><span class="ln">6.2</span> Use your model from Python: the local API</span></a></li><li data-id="memory-rag"><a href="../lessons/memory-rag.html"><span class="dot"></span><span><span class="ln">6.3</span> Memory and RAG: give your model your documents</span></a></li><li data-id="local-security"><a href="../lessons/local-security.html"><span class="dot"></span><span><span class="ln">6.4</span> Privacy, safety and good hygiene for local AI</span></a></li><li data-id="structured-tools"><a href="../lessons/structured-tools.html"><span class="dot"></span><span><span class="ln">6.5</span> Structured output and tool calling</span></a></li></ul></div><div class="mod" data-m="7"><button class="mod-h" type="button" aria-expanded="false"><svg class="chev" width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M4 2l4 4-4 4"/></svg><span class="n">7</span><span>How models really work</span><span class="c" data-count="7"></span></button><ul><li data-id="gradient-descent"><a href="../lessons/gradient-descent.html"><span class="dot"></span><span><span class="ln">7.1</span> How a model learns: gradient descent by hand</span></a></li><li data-id="transformer"><a href="../lessons/transformer.html"><span class="dot"></span><span><span class="ln">7.2</span> Inside the transformer</span></a></li><li data-id="chat-templates"><a href="../lessons/chat-templates.html"><span class="dot"></span><span><span class="ln">7.3</span> Base, instruct, thinking models and chat templates</span></a></li><li data-id="generation"><a href="../lessons/generation.html"><span class="dot"></span><span><span class="ln">7.4</span> How text gets generated, token by token <span class="opt">Optional</span></span></a></li></ul></div><div class="mod" data-m="8"><button class="mod-h" type="button" aria-expanded="false"><svg class="chev" width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M4 2l4 4-4 4"/></svg><span class="n">8</span><span>Customize without training</span><span class="c" data-count="8"></span></button><ul><li data-id="customize-ladder"><a href="../lessons/customize-ladder.html"><span class="dot"></span><span><span class="ln">8.1</span> The customization ladder: choose the right tool</span></a></li><li data-id="modelfiles"><a href="../lessons/modelfiles.html"><span class="dot"></span><span><span class="ln">8.2</span> Custom models with Modelfiles and presets</span></a></li></ul></div><div class="mod" data-m="9"><button class="mod-h" type="button" aria-expanded="false"><svg class="chev" width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M4 2l4 4-4 4"/></svg><span class="n">9</span><span>Fine-tune your own model</span><span class="c" data-count="9"></span></button><ul><li data-id="training-101"><a href="../lessons/training-101.html"><span class="dot"></span><span><span class="ln">9.1</span> Training 101: LoRA, QLoRA and what fits your GPU</span></a></li><li data-id="dataset"><a href="../lessons/dataset.html"><span class="dot"></span><span><span class="ln">9.2</span> Build your training dataset</span></a></li><li data-id="train-env"><a href="../lessons/train-env.html"><span class="dot"></span><span><span class="ln">9.3</span> Set up your training environment on Windows</span></a></li><li data-id="first-lora"><a href="../lessons/first-lora.html"><span class="dot"></span><span><span class="ln">9.4</span> Train your first LoRA with Unsloth</span></a></li><li data-id="evaluate"><a href="../lessons/evaluate.html"><span class="dot"></span><span><span class="ln">9.5</span> Evaluate your fine-tune honestly</span></a></li><li data-id="export"><a href="../lessons/export.html"><span class="dot"></span><span><span class="ln">9.6</span> Export: merge, convert to GGUF, run in LM Studio and Ollama</span></a></li><li data-id="beyond-sft"><a href="../lessons/beyond-sft.html"><span class="dot"></span><span><span class="ln">9.7</span> Beyond SFT: DPO, distillation, RL and more <span class="opt">Optional</span></span></a></li></ul></div><div class="mod open" data-m="10"><button class="mod-h" type="button" aria-expanded="true"><svg class="chev" width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M4 2l4 4-4 4"/></svg><span class="n">10</span><span>Uncensor and edit models</span><span class="c" data-count="10"></span></button><ul><li data-id="directions"><a href="../lessons/directions.html"><span class="dot"></span><span><span class="ln">10.1</span> Features are directions: interpretability for builders</span></a></li><li data-id="steering"><a href="../lessons/steering.html"><span class="dot"></span><span><span class="ln">10.2</span> Activation steering: change behaviour without training</span></a></li><li data-id="ablation"><a href="../lessons/ablation.html" aria-current="page"><span class="dot"></span><span><span class="ln">10.3</span> Direction ablation and abliteration: editing weights</span></a></li><li data-id="uncensored-routes"><a href="../lessons/uncensored-routes.html"><span class="dot"></span><span><span class="ln">10.4</span> Build your own uncensored custom model: five routes</span></a></li><li data-id="editing-merging"><a href="../lessons/editing-merging.html"><span class="dot"></span><span><span class="ln">10.5</span> Knowledge editing and model merging <span class="opt">Optional</span></span></a></li></ul></div><div class="mod" data-m="11"><button class="mod-h" type="button" aria-expanded="false"><svg class="chev" width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M4 2l4 4-4 4"/></svg><span class="n">11</span><span>Capstone</span><span class="c" data-count="11"></span></button><ul><li data-id="capstone"><a href="../lessons/capstone.html"><span class="dot"></span><span><span class="ln">11.1</span> Capstone: build your own model, end to end</span></a></li><li data-id="next-steps"><a href="../lessons/next-steps.html"><span class="dot"></span><span><span class="ln">11.2</span> Where to go next <span class="opt">Optional</span></span></a></li></ul></div><div class="mod" data-m="R"><button class="mod-h" type="button" aria-expanded="false"><svg class="chev" width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M4 2l4 4-4 4"/></svg><span class="n"></span><span>Reference</span><span class="c" data-count="R"></span></button><ul><li data-id="roadmap"><a href="../lessons/roadmap.html"><span class="dot"></span><span>The 8-week learning plan</span></a></li><li data-id="cheatsheet"><a href="../lessons/cheatsheet.html"><span class="dot"></span><span>Command cheatsheet</span></a></li><li data-id="glossary"><a href="../lessons/glossary.html"><span class="dot"></span><span>Glossary</span></a></li><li data-id="resources"><a href="../lessons/resources.html"><span class="dot"></span><span>Resources and reading list</span></a></li></ul></div></nav>
+  </aside>
+  <div class="main">
+    <div class="top">
+      <button class="btn menu-btn" id="menuBtn" type="button" aria-label="Open course map">Menu</button>
+      <button class="btn search-btn" id="searchBtn" type="button" aria-label="Search lessons">Search <kbd>Ctrl K</kbd></button>
+      <span class="grow"></span>
+      <a class="btn hide-s" href="../lessons/roadmap.html">8-week plan</a>
+      <button class="btn" id="themeBtn" type="button" aria-label="Switch colour theme">Theme</button>
+    </div>
+    <main id="view" tabindex="-1">
+<article><div class="crumbs"><span>Uncensor and edit models</span><span class="pill">Lesson 10.3</span><span>20 min</span></div><h1>Direction ablation and abliteration: editing weights</h1>
+<p class="lede">Steering adds a direction while the model runs. Ablation removes a direction permanently, by editing the weights so no layer can ever write it. Aimed at the refusal direction, this is abliteration, the most common way uncensored models are made. This lesson teaches the maths, then gives you a script that does it.</p>
+<div class="goals"><h4>What you will learn</h4><ul>
+<li>Remove a direction from a vector, and from a weight matrix</li>
+<li>Bake an edit into a model and save it as new weights</li>
+<li>Run the full abliteration pipeline and evaluate it honestly</li>
+<li>Know the costs, and how "healing" recovers quality</li>
+</ul></div>
+
+<div class="box warn"><b>Before you start</b>
+<p>Work on a copy and keep the original. Measure before and after. When you remove a model's ability to refuse, its judgement becomes your job (lesson 5.3).</p></div>
+
+<h2>The maths, in two dimensions</h2>
+<p>Take a vector x = (3, 4) and a unit direction r̂ = (1, 0). The dot product x·r̂ = 3 says how far x goes along r̂. Removing that part:</p>
+<pre data-lang="text"><code>x' = x − (x·r̂) r̂ = (3, 4) − 3·(1, 0) = (0, 4)
+check: x'·r̂ = 0     → nothing left along r̂, everything else untouched</code></pre>
+<p>Add a strength s: <code>x' = x − s (x·r̂) r̂</code>. s = 1 removes the component exactly, s = 0.5 halves it, s = 2 flips it.</p>
+
+<h2>From vectors to weights</h2>
+<p>A writer matrix W (lesson 7.2) adds <code>y = W·x</code> to the residual stream. To make sure its output never contains r̂:</p>
+<pre data-lang="text"><code>W' = W − r̂ (r̂ᵀ W)            # for o_proj, out_proj, down_proj  (PyTorch shape [hidden, in])
+E' = E − (E r̂) r̂ᵀ            # for the embedding table          (shape [vocab, hidden])</code></pre>
+<p>If you edit the embedding and <i>every</i> writer in every layer, the stream can never contain r̂, because it is just the sum of what those writers add. This "full orthogonalization" is what abliteration does. Editing only a few writers is "targeted ablation", with a smaller effect and fewer side effects.</p>
+<div class="box warn"><b>Two classic mistakes</b>
+<ul>
+<li>Do the maths in float32, then cast back to bf16. Editing in bf16 adds rounding error comparable to the edit itself.</li>
+<li>Edit Hugging Face safetensors weights, never GGUF tensors. GGUF stores dimensions in reverse order, so the code would edit the wrong axis.</li>
+</ul></div>
+
+<h2>The script: ablate.py</h2>
+<p>It uses <code>dirkit.py</code> from lesson 10.1. Give it two prompt files (one prompt per line), optional system prompts for each, a layer, and test prompts. It finds the direction, shows outputs before, edits the weights, shows outputs after, and saves the edited model.</p>
+<pre data-lang="python"><code>"""ablate.py: find a direction from two prompt sets and remove it from every writer weight."""
+import argparse, torch
+from dirkit import load, chat, last_token_states, generate, read_lines
+
+
+@torch.no_grad()
+def orthogonalize(model, r):
+    r = r.float()
+    def fix(W):                                   # writer weight, shape [hidden, in]
+        Wf = W.data.float(); rr = r.to(Wf.device)
+        Wf -= torch.outer(rr, rr @ Wf)
+        W.data.copy_(Wf.to(W.dtype))
+    E = model.model.embed_tokens.weight           # shape [vocab, hidden]
+    Ef = E.data.float(); rr = r.to(Ef.device)
+    Ef -= torch.outer(Ef @ rr, rr)
+    E.data.copy_(Ef.to(E.dtype))
+    edited = 1
+    for layer in model.model.layers:
+        for part in ("self_attn", "linear_attn"):
+            mod = getattr(layer, part, None)
+            for name in ("o_proj", "out_proj"):
+                if mod is not None and hasattr(mod, name):
+                    fix(getattr(mod, name).weight); edited += 1
+        fix(layer.mlp.down_proj.weight); edited += 1
+    return edited
+
+
+def main():
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--pos", required=True); ap.add_argument("--neg", required=True)
+    ap.add_argument("--pos-system"); ap.add_argument("--neg-system")
+    ap.add_argument("--test", required=True); ap.add_argument("--test-system")
+    ap.add_argument("--layer", type=int, help="decoder layer whose output defines the direction")
+    ap.add_argument("--out", default="edited-model")
+    a = ap.parse_args()
+    tok, model = load()
+    pos = last_token_states(model, tok, [chat(tok, q, a.pos_system) for q in read_lines(a.pos)])
+    neg = last_token_states(model, tok, [chat(tok, q, a.neg_system) for q in read_lines(a.neg)])
+    diff = pos.mean(1) - neg.mean(1)
+    for i in range(1, diff.shape[0]):
+        print(f"layer {i - 1:2d}: |difference| = {diff[i].norm():.2f}")
+    L = a.layer if a.layer is not None else int(0.5 * len(model.model.layers))
+    r = diff[L + 1] / diff[L + 1].norm()
+    tests = [chat(tok, q, a.test_system) for q in read_lines(a.test)]
+    before = [generate(model, tok, t) for t in tests]
+    print("edited", orthogonalize(model, r), "weight matrices using layer", L)
+    after = [generate(model, tok, t) for t in tests]
+    for (b, nb), (c, nc) in zip(before, after):
+        print(f"\nBEFORE ({nb} tok): {b[:200]!r}\nAFTER  ({nc} tok): {c[:200]!r}")
+    model.save_pretrained(a.out); tok.save_pretrained(a.out)
+    torch.save(r, f"{a.out}/direction.pt")
+
+
+if __name__ == "__main__":
+    main()</code></pre>
+
+<h2>Lab: remove the "be verbose" direction</h2>
+<p>A safe first edit you can measure objectively. Put 30 or more varied questions in <code>questions.txt</code> and 10 different ones in <code>test.txt</code>, then:</p>
+<pre data-lang="powershell"><code>python ablate.py --pos questions.txt --neg questions.txt `
+  --pos-system "Answer at length with detail and examples." `
+  --neg-system "Answer in one short sentence." `
+  --test test.txt --test-system "Answer at length with detail and examples." --out less-verbose</code></pre>
+<p>After the edit, the model should struggle to follow "answer at length" and its answers should get shorter, because it can no longer represent that instruction along the removed direction. Try several <code>--layer</code> values around the middle of the model and compare. Then run a few unrelated questions to check general quality.</p>
+
+<h2>Abliteration: the same edit, aimed at refusals</h2>
+<p>Arditi et al. (2024) found that across 13 open chat models up to 72B, refusing is largely mediated by one direction. Abliteration finds it with exactly this script:</p>
+<ul>
+<li><code>--pos</code>: requests the model refuses.</li>
+<li><code>--neg</code>: similar requests it answers normally, matched in length and style.</li>
+<li>No system prompts.</li>
+<li><code>--test</code>: held-out requests of both kinds, never used to find the direction.</li>
+</ul>
+<p>The research used a few hundred prompts per side from public instruction datasets. For your own purposes, the most useful positive set is usually the <b>legitimate requests your model over-refuses</b> in your field (fiction, security education, medicine, history), because that is the behaviour you actually want removed. Then pick the layer by testing: the best layer is the one where held-out refusals drop most while answers stay coherent.</p>
+
+<h3>Evaluate it like an engineer</h3>
+<pre data-lang="python"><code>REFUSAL_MARKERS = ["i can't", "i cannot", "i'm sorry", "i won't", "as an ai", "i am unable"]
+def refused(text):
+    return any(m in text.lower()[:200] for m in REFUSAL_MARKERS)
+# refusal rate = share of held-out prompts where refused(answer) is True, before vs after</code></pre>
+<ol>
+<li><b>Refusal rate</b> on held-out prompts, before and after. This keyword check is a rough first pass, so read the answers too.</li>
+<li><b>Quality</b> on your regression set from lesson 9.5. Abliteration usually costs a little. One published comparison of a 27B abliterated model found broad knowledge almost unchanged but truthfulness benchmarks down by about 6 points (lesson 5.2).</li>
+<li><b>New problems</b>: more hallucination, weaker instruction following, odd disclaimers.</li>
+</ol>
+
+<h3>Healing</h3>
+<p>A widely read 2024 tutorial by Maxime Labonne found that abliterating a Llama 3 8B model removed refusals but lowered every benchmark run, and that a short DPO step afterwards recovered most of the loss (though not on maths). That is the standard recipe: abliterate, then a small DPO or SFT run on good-quality examples (lesson 9.7).</p>
+
+<h2>From edited weights to LM Studio</h2>
+<p>The script saves ordinary safetensors. Convert and quantize them exactly like a merged fine-tune (lesson 9.6): <code>convert_hf_to_gguf.py</code>, then <code>llama-quantize</code>, then import.</p>
+<div class="box tip"><b>Bigger models</b>
+<p>The script loads the whole model onto the GPU in 16-bit, so it suits models up to roughly half your VRAM in billions of parameters (a 4B model needs about 8 GB; on a 4 GB card, stay with 0.6B to 1.5B models). For larger models, compute the direction on the GPU, then edit the safetensors files shard by shard on the CPU with the same two formulas, which needs no GPU memory.</p></div>
+
+<div class="quiz"><h3>Check yourself</h3>
+<div class="q" data-correct="2"><p class="qt">Why must every writer be edited for full orthogonalization?</p><ol><li>To make the file smaller</li><li>The residual stream is the sum of everything writers add, so any unedited writer could still write the direction</li><li>Because LoRA requires it</li></ol><p class="why">Only when every source is cleaned can the stream never contain r̂.</p></div>
+<div class="q" data-correct="1"><p class="qt">Why edit in float32 and cast back?</p><ol><li>bf16 rounding error can be as large as the edit itself</li><li>GGUF requires float32</li><li>It is faster</li></ol><p class="why">High-precision maths keeps small edits intact.</p></div>
+<div class="q" data-correct="3"><p class="qt">Refusals dropped to zero after abliteration. Is the job done?</p><ol><li>Yes</li><li>Yes, if the file is the same size</li><li>No. Check quality on a regression set and read answers for new problems, then consider healing.</li></ol><p class="why">"Answers everything" says nothing about whether the answers are good.</p></div>
+</div>
+
+<div class="lesson-nav"><div><button class="btn primary" id="doneBtn" type="button" data-id="ablation">Mark lesson complete</button></div><div class="nav-links"><a class="btn" href="steering.html">← Activation steering: change…</a><a class="btn primary" href="uncensored-routes.html">Build your own uncensored… →</a></div></div></article>
+    </main>
+  </div>
+</div>
+<div class="scrim" id="scrim" role="dialog" aria-modal="true" aria-label="Search">
+  <div class="sbox"><input id="sinput" type="text" placeholder="Search lessons and terms, e.g. VRAM, GGUF, LoRA" autocomplete="off"><div class="sres" id="sres"></div></div>
+</div>
+<script src="../assets/js/course-data.js"></script>
+<script src="../assets/js/widgets.js"></script>
+<script src="../assets/js/app.js"></script>
+</body>
+</html>

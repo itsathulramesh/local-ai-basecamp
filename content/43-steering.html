@@ -1,0 +1,101 @@
+<!-- {"id": "steering", "module": "10", "title": "Activation steering: change behaviour without training", "minutes": 15, "optional": false} -->
+<p class="lede">Add a direction to the residual stream while the model runs and you can make it shorter, more formal or more cheerful, with no training and no prompt. This lesson builds a steering vector in Python, then applies one to a GGUF with llama.cpp.</p>
+<div class="goals"><h4>What you will learn</h4><ul>
+<li>Build and apply a steering vector, and sweep layer and strength</li>
+<li>Measure the intended effect and the side effects</li>
+<li>Create and use llama.cpp control vectors on a GGUF</li>
+<li>Choose between prompting, steering and fine-tuning</li>
+</ul></div>
+
+<h2>The idea</h2>
+<p>Take the direction from lesson 10.1 (verbose minus concise). While the model generates, add <code>α × v</code> to one layer's output at every token. Positive α pushes toward verbose, negative toward concise. Nothing on disk changes, and removing the hook restores the original model.</p>
+
+<h2>Lab: steer.py</h2>
+<pre data-lang="python"><code>"""steer.py: apply the verbose-vs-concise vector and sweep layer x strength."""
+import torch
+from dirkit import load, chat, generate
+
+TEST = ["What is a CPU cache?", "How do airplanes fly?", "What is a reverse proxy?"]
+NEUTRAL = "The committee met on Tuesday to review the budget and agreed to postpone the vote until March."
+
+
+class Steer:
+    """Add alpha * v to one decoder layer's output while active."""
+    def __init__(self, layer, v, alpha):
+        p = next(layer.parameters())
+        self.layer, self.v, self.alpha = layer, v.to(p.device, p.dtype), alpha
+    def hook(self, module, inputs, output):
+        if isinstance(output, tuple):
+            return (output[0] + self.alpha * self.v, *output[1:])
+        return output + self.alpha * self.v
+    def __enter__(self):
+        self.h = self.layer.register_forward_hook(self.hook)
+    def __exit__(self, *exc):
+        self.h.remove()
+
+
+@torch.no_grad()
+def neutral_loss(model, tok):
+    ids = tok(NEUTRAL, return_tensors="pt").to(model.device)
+    return float(model(**ids, labels=ids.input_ids).loss)
+
+
+tok, model = load()
+diff = torch.load("verbose_minus_concise.pt")          # index i = output of layer i - 1
+n = len(model.model.layers)
+base = neutral_loss(model, tok)
+print("layer alpha  mean_len  side_effect  sample")
+for L in (n // 4, n // 2, 3 * n // 4):
+    for alpha in (-4.0, -2.0, 0.0, 2.0, 4.0):
+        with Steer(model.model.layers[L], diff[L + 1], alpha):
+            outs = [generate(model, tok, chat(tok, q), 160) for q in TEST]
+            side = neutral_loss(model, tok) - base
+        mean_len = sum(k for _, k in outs) / len(outs)
+        print(f"{L:5d} {alpha:+5.1f} {mean_len:9.1f} {side:+11.3f}  {outs[0][0][:60]!r}")</code></pre>
+<h3>How to read the results</h3>
+<ul>
+<li><b>Mean length</b> should rise with positive α and fall with negative α at a good layer.</li>
+<li><b>Side effect</b> is how much more surprised the model is by a neutral sentence. It usually starts rising before the text visibly breaks, which makes it an early warning.</li>
+<li><b>Read the samples.</b> Length can rise because the model starts repeating itself. A result only counts if the text is still good.</li>
+<li>Middle layers usually steer best. Past a certain strength, coherence collapses suddenly.</li>
+</ul>
+<div class="box tip"><b>Your own direction</b>
+<p>Swap the instructions for a formal-versus-casual pair, or plain-English versus jargon. Then compare your new vector with the verbosity one using cosine similarity (<code>torch.nn.functional.cosine_similarity</code>). Below about 0.3 means a genuinely different direction.</p></div>
+
+<h2>Steering a GGUF with llama.cpp</h2>
+<p>LM Studio and Ollama do not currently expose steering, but llama.cpp's own server runs the same GGUF files and supports <b>control vectors</b>. A control vector is a small GGUF holding one direction per layer, and it must come from the same model (same width and layers).</p>
+<h3>1. Make one with llama-cvector-generator</h3>
+<p>The tool runs paired prompts through the model, takes positive-minus-negative differences at each layer, and condenses them (PCA by default, or <code>--method mean</code>). Prompt files have one prompt per line, written in the model's raw chat format with newlines escaped as <code>\n</code>. Generate them from the tokenizer so the template is exact:</p>
+<pre data-lang="python"><code>"""make_cvec_prompts.py: write positive/negative prompt files for llama-cvector-generator."""
+from transformers import AutoTokenizer
+tok = AutoTokenizer.from_pretrained("Qwen/Qwen3-0.6B")    # the same model as your GGUF
+QS = ["What is DNS?", "Why is the sky blue?", "What is TLS?", "How do vaccines work?"]  # use 50+
+def fmt(system, q):
+    t = tok.apply_chat_template([{"role": "system", "content": system}, {"role": "user", "content": q}],
+                                tokenize=False, add_generation_prompt=True, enable_thinking=False)
+    return t.replace("\n", "\\n")
+with open("positive.txt", "w", encoding="utf-8") as p, open("negative.txt", "w", encoding="utf-8") as n:
+    for q in QS:
+        p.write(fmt("Answer in one short sentence.", q) + "\n")
+        n.write(fmt("Answer at length with detail and examples.", q) + "\n")</code></pre>
+<pre data-lang="bash"><code>./build/bin/llama-cvector-generator -m model-Q8_0.gguf \
+  --positive-file positive.txt --negative-file negative.txt -ngl 99 -o concise.gguf</code></pre>
+<h3>2. Apply it</h3>
+<pre data-lang="bash"><code>./build/bin/llama-server -m model-Q8_0.gguf \
+  --control-vector-scaled concise.gguf:0.8 --control-vector-layer-range 8 20 \
+  --host 127.0.0.1 --port 8081</code></pre>
+<p>Negative scales push the other way. The server speaks the same OpenAI-style API as lesson 6.2. Flag spellings have changed between versions (some older docs show the scale after a space), so run <code>llama-server --help</code> and trust what it prints. The tools are in llama.cpp's Windows release downloads, or you can build them in WSL2 (lesson 9.6).</p>
+
+<h2>Steering vs prompting vs fine-tuning</h2>
+<div class="tw"><table><thead><tr><th></th><th>Prompting</th><th>Steering</th><th>Fine-tuning</th></tr></thead><tbody>
+<tr><td>Changes weights?</td><td>No</td><td>No</td><td>Yes (or adds an adapter)</td></tr>
+<tr><td>Cost to create</td><td>Minutes</td><td>An hour</td><td>Hours, data, a GPU</td></tr>
+<tr><td>Can a user override it?</td><td>Easily</td><td>Not from the prompt</td><td>Not from the prompt</td></tr>
+<tr><td>Best for</td><td>Most tasks</td><td>One behaviour axis: tone, length, persona</td><td>New formats and skills</td></tr>
+<tr><td>Main risk</td><td>Ignored, injected</td><td>Incoherence at high strength</td><td>Forgetting, overfitting</td></tr>
+</tbody></table></div>
+
+<div class="quiz"><h3>Check yourself</h3>
+<div class="q" data-correct="3"><p class="qt">Mean answer length rises at α = +4, but samples repeat the same phrase. Is the steering a success?</p><ol><li>Yes, the number went up</li><li>Yes, if the side-effect metric is below 1</li><li>No. The text broke, so lower α or try another layer.</li></ol><p class="why">Always read the outputs, not only the metric.</p></div>
+<div class="q" data-correct="1"><p class="qt">Can a control vector made from a 0.6B model steer a 9B model?</p><ol><li>No. It must come from the same model.</li><li>Yes, any model works</li><li>Only at scale 1.0</li></ol><p class="why">Widths and layers differ, and directions are model-specific.</p></div>
+</div>

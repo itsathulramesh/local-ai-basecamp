@@ -1,0 +1,39 @@
+<!-- {"id": "what-is-ai", "module": "1", "title": "What AI, machine learning and LLMs actually are", "minutes": 10, "optional": false} -->
+<p class="lede">"AI" is used for everything from spam filters to chatbots. Before running a model on your PC it helps to know exactly what the thing in the file is.</p>
+<div class="goals"><h4>What you will learn</h4><ul>
+<li>Place AI, machine learning, deep learning and LLMs in one picture</li>
+<li>Explain what a "model" and a "weight" are</li>
+<li>Explain why a language model is a next-word predictor and why that is enough to look intelligent</li>
+<li>Explain why it makes things up</li>
+</ul></div>
+
+<h2>Four nested words</h2>
+<p>These four terms get mixed up constantly. They are nested, like Russian dolls.</p>
+<div class="tw"><table><thead><tr><th>Term</th><th>Meaning</th><th>Example</th></tr></thead><tbody>
+<tr><td>Artificial intelligence</td><td>Any software that does something we would call intelligent. The widest ring.</td><td>A chess engine, a route planner, a chatbot</td></tr>
+<tr><td>Machine learning</td><td>AI where the rules are learned from examples instead of written by hand.</td><td>A spam filter trained on millions of emails</td></tr>
+<tr><td>Deep learning</td><td>Machine learning that uses many-layered neural networks.</td><td>Image recognition, speech to text</td></tr>
+<tr><td>Large language model (LLM)</td><td>A deep-learning model trained on huge amounts of text to continue text.</td><td>GPT, Claude, Gemini, Llama, Qwen</td></tr>
+</tbody></table></div>
+
+<h2>A model is a function with knobs</h2>
+<p>Forget AI for a moment. A function takes numbers in and gives numbers out. <code>f(x) = 3 × x</code> turns 2 into 6. A <b>model</b> is a function too, but instead of one number (the 3) it has billions of adjustable numbers called <b>weights</b> or <b>parameters</b>. You do not set them by hand. A training process sets them automatically by showing the model many examples and nudging every weight a tiny bit each time the answer is wrong.</p>
+<div class="box concept"><b>Concept: weights</b>
+<p>Weights are the learned numbers inside a model. A "9B model" has about 9 billion of them. The file you download is essentially just those numbers, plus a little metadata. There is no database of text inside and no internet connection needed to use it.</p></div>
+
+<h2>What an LLM does</h2>
+<p>An LLM has one job: given some text, score every possible next piece of text. Type "The capital of France is" and the model gives a high score to " Paris" and a very low score to " banana". A program then picks one piece, adds it to the text, and asks again. Repeat a few hundred times and you have a paragraph.</p>
+<p>That is the whole mechanism behind every chatbot you have used. Everything else (answering questions, writing code, following instructions) emerges from getting extremely good at this one prediction task on a huge amount of text. To predict the next word in a physics textbook well, the model has to pick up physics. To predict the next line of Python, it has to pick up Python.</p>
+
+<div class="box concept"><b>Concept: predict, pick, repeat</b>
+<p>The model never writes a whole answer at once. It produces one small piece, appends it, and runs again. This is why long answers take time and why a model cannot "go back and fix" what it already wrote.</p></div>
+
+<h2>Why models make things up</h2>
+<p>Because the job is "produce plausible continuations", not "look up the truth". If the training text rarely mentioned a fact, the model still has to say something, and the most plausible-sounding thing is often wrong. This is called <b>hallucination</b>. Smaller models hallucinate more. The fix is not a better prompt alone. It is giving the model the facts to work with (lesson 6.3) and checking what it says.</p>
+<div class="box warn"><b>Knowledge cutoff</b>
+<p>A model only knows what was in its training text, up to a certain date. A local model has no idea what happened last week unless you tell it. The cloud chat apps get around this by adding web search. A local model can too, but only if you connect it.</p></div>
+
+<div class="quiz"><h3>Check yourself</h3>
+<div class="q" data-correct="3"><p class="qt">What is physically inside a model file?</p><ol><li>A compressed copy of the internet</li><li>A database of sentences it looks up</li><li>Billions of learned numbers (weights) and some metadata</li></ol><p class="why">There is no text database. The knowledge is spread across the weights, which is why a model can be wrong and cannot cite where it learned something.</p></div>
+<div class="q" data-correct="2"><p class="qt">Why can a model that only predicts the next word still answer questions and write code?</p><ol><li>It secretly runs a search engine</li><li>Predicting text well on a huge amount of data forces it to absorb facts and patterns</li><li>It has a separate module for each task</li></ol><p class="why">Good prediction needs understanding of the content. Instruction-following is added on top with extra training (lesson 5.1).</p></div>
+</div>

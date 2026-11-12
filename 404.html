@@ -1,0 +1,13 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Page not found · Local AI Basecamp</title>
+<style>body{margin:0;font-family:system-ui,-apple-system,'Segoe UI',sans-serif;background:#f1f5f6;color:#11202a;display:grid;place-items:center;min-height:100vh;padding:16px;box-sizing:border-box}
+@media (prefers-color-scheme:dark){body{background:#0b1216;color:#e3ecef}a{color:#4cc9c0}}
+main{max-width:480px;text-align:center}a{color:#0a7a76;font-weight:600}</style></head>
+<body><main><h1>Page not found</h1><p>This page does not exist. It may have been renamed.</p>
+<p><a id="home" href="index.html">Go to the start page</a></p></main>
+<script>
+// On GitHub Pages project sites the site lives under /<repository>/, so point the link there.
+var p = location.pathname.split('/').filter(Boolean);
+if (location.hostname.endsWith('github.io') && p.length) document.getElementById('home').href = '/' + p[0] + '/';
+</script></body></html>

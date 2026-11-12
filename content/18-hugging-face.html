@@ -1,0 +1,53 @@
+<!-- {"id": "hugging-face", "module": "4", "title": "Hugging Face: finding and judging models", "minutes": 11, "optional": false} -->
+<p class="lede">Hugging Face is the main place where open models live, a mix of GitHub and an app store for models. Knowing how to read a page there lets you move beyond whatever a tool suggests.</p>
+<div class="goals"><h4>What you will learn</h4><ul>
+<li>Search for models and read a model card</li>
+<li>Judge whether a repository is trustworthy</li>
+<li>Pick the right file for your hardware</li>
+<li>Use the model's recommended settings</li>
+</ul></div>
+
+<h2>Anatomy of a model page</h2>
+<ul>
+<li><b>Name and publisher</b>: <code>publisher/model-name</code>. The publisher matters for trust.</li>
+<li><b>Model card</b> (the README): what it is, training notes, licence, recommended settings, limitations.</li>
+<li><b>Files and versions</b>: the actual files and their sizes.</li>
+<li><b>Community</b>: discussions, where people report bugs, problems and benchmarks.</li>
+<li><b>Tags and counts</b>: parameter size, downloads and likes.</li>
+</ul>
+
+<h2>Who made this version?</h2>
+<p>Models come in layers of re-uploads:</p>
+<ol>
+<li><b>The original</b> from the lab, such as Qwen, Google or Meta, in safetensors.</li>
+<li><b>GGUF conversions</b>, made by community members who specialise in quantizing (several well-known names do this for nearly every release), or by the lab itself.</li>
+<li><b>Fine-tunes and merges</b>, where someone trained further or blended models. This includes "uncensored" or "abliterated" versions (module 5).</li>
+</ol>
+<p>The model card of a derivative should name its <b>base model</b>. If it does not, treat it with caution.</p>
+
+<h2>Trust checklist</h2>
+<label class="ck"><input type="checkbox" data-k="hf-a"><span>Publisher is the original lab or a known community uploader</span></label>
+<label class="ck"><input type="checkbox" data-k="hf-b"><span>Many downloads, and a recent update</span></label>
+<label class="ck"><input type="checkbox" data-k="hf-c"><span>Model card names the base model, licence and how it was made</span></label>
+<label class="ck"><input type="checkbox" data-k="hf-d"><span>Files are <code>.gguf</code> or <code>.safetensors</code>, not unusual executables</span></label>
+<label class="ck"><input type="checkbox" data-k="hf-e"><span>The discussion tab has no reports of broken or malicious files</span></label>
+<p></p>
+
+<h2>Choosing the file</h2>
+<p>For a GGUF repository, choose a quantization from the list so that file size plus 1.5 to 3 GB for cache and overhead fits your VRAM. As a quick check: VRAM minus about 2.5 GB is the largest file you should consider for decent context. LM Studio's Discover tab does this for you with a "will it fit" badge.</p>
+
+<h2>Read the recommended settings</h2>
+<p>Look for a "Best practices" or "Usage" section. Authors often specify temperature, top-p, and whether to enable thinking. Following them avoids a lot of "why is this model terrible" confusion.</p>
+
+<h2>Gated models and tokens</h2>
+<p>Some models require you to accept a licence on the page before downloading. You do this with a free Hugging Face account. If you use scripts, you create an access token in your account settings. Treat tokens like passwords: never paste them in public places.</p>
+
+<h2>Downloading from a script</h2>
+<pre data-lang="powershell"><code>pip install -U "huggingface_hub[cli]"
+hf download publisher/model-name-GGUF model-name-Q4_K_M.gguf --local-dir .\models</code></pre>
+<p>The tool was renamed from <code>huggingface-cli</code> to <code>hf</code> in newer versions. Run <code>hf --help</code> if the command is not found.</p>
+
+<div class="quiz"><h3>Check yourself</h3>
+<div class="q" data-correct="1"><p class="qt">A repository has no model card, no stated base model and 12 downloads. What should you do?</p><ol><li>Be cautious and prefer a better-documented alternative</li><li>Download it because the file is small</li><li>Run the installer that comes with it</li></ol><p class="why">Missing provenance is a red flag. There are nearly always well-documented versions of any popular model.</p></div>
+<div class="q" data-correct="3"><p class="qt">You have 12 GB of VRAM. Roughly what is the biggest GGUF file to consider?</p><ol><li>12 GB</li><li>20 GB</li><li>About 9 to 9.5 GB</li></ol><p class="why">Leave 2.5 to 3 GB for cache and overhead.</p></div>
+</div>

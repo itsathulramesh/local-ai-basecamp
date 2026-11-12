@@ -1,0 +1,54 @@
+<!-- {"id": "customize-ladder", "module": "8", "title": "The customization ladder: choose the right tool", "minutes": 10, "optional": false} -->
+<p class="lede">"Customize my model" can mean six very different things, from a one-line system prompt to editing weights. Each rung is more powerful, more expensive and harder to undo than the one below. This lesson helps you pick the lowest rung that does the job.</p>
+<div class="goals"><h4>What you will learn</h4><ul>
+<li>Name the six ways to change a model's behaviour</li>
+<li>Match a goal to the cheapest method that achieves it</li>
+<li>Know what fine-tuning is good and bad at before you spend hours on it</li>
+</ul></div>
+
+<h2>The six rungs</h2>
+<div class="tw"><table><thead><tr><th>Rung</th><th>What changes</th><th>Effort</th><th>Undo</th><th>Lesson</th></tr></thead><tbody>
+<tr><td>1. Prompt and system prompt</td><td>The text you send</td><td>Minutes</td><td>Instant</td><td>6.1</td></tr>
+<tr><td>2. Preset or Modelfile</td><td>Saved prompt, settings and template, packaged as a "custom model"</td><td>Minutes</td><td>Instant</td><td>8.2</td></tr>
+<tr><td>3. RAG (your documents)</td><td>Which facts go into the context</td><td>Hours</td><td>Instant</td><td>6.3</td></tr>
+<tr><td>4. Activation steering</td><td>A vector added inside the model while it runs</td><td>An hour</td><td>Instant (remove the vector)</td><td>10.2</td></tr>
+<tr><td>5. Fine-tuning (LoRA)</td><td>A small trained add-on to the weights</td><td>Hours to days, a dataset, a GPU</td><td>Keep the base and the adapter</td><td>Module 9</td></tr>
+<tr><td>6. Weight editing (ablation, merging)</td><td>The weights themselves</td><td>Hours, careful evaluation</td><td>Keep the original file</td><td>10.3 to 10.5</td></tr>
+</tbody></table></div>
+
+<h2>Pick by goal</h2>
+<div class="tw"><table><thead><tr><th>You want the model to…</th><th>Start with</th></tr></thead><tbody>
+<tr><td>Use a persona, tone or language</td><td>System prompt, then a Modelfile</td></tr>
+<tr><td>Know your documents, products or notes</td><td>RAG. Not fine-tuning.</td></tr>
+<tr><td>Always answer in a strict format (JSON, a report skeleton)</td><td>Prompt with examples. If it still slips, fine-tune.</td></tr>
+<tr><td>Be reliably shorter, more formal, less hedging</td><td>Prompt, then steering, then fine-tuning</td></tr>
+<tr><td>Do a narrow task very consistently (classify, extract, rewrite in your house style)</td><td>Fine-tuning</td></tr>
+<tr><td>Stop refusing legitimate requests</td><td>Better context first, then an uncensored base, abliteration or fine-tuning (module 10)</td></tr>
+<tr><td>Combine skills from two fine-tunes</td><td>Model merging (10.5)</td></tr>
+</tbody></table></div>
+
+<h2>What fine-tuning is good at, and bad at</h2>
+<p>This table saves more wasted GPU hours than anything else in the course.</p>
+<div class="tw"><table><thead><tr><th>Good fit</th><th>Poor fit</th></tr></thead><tbody>
+<tr><td><b>Style and voice</b>: your writing tone, your team's report wording</td><td><b>Adding facts</b>: product lists, recent events, your company's data. Use RAG.</td></tr>
+<tr><td><b>Format</b>: always produce the same JSON keys or headings</td><td><b>Facts that change</b>. Retraining every week is pointless. Use RAG or tools.</td></tr>
+<tr><td><b>Narrow task skill</b>: classify tickets, summarise code, extract fields</td><td><b>Something one sentence of prompt fixes</b></td></tr>
+<tr><td><b>Habits</b>: always check X before Y, always say "unknown" when unsure</td><td><b>Making a small model as smart as a frontier model</b>. It will not happen.</td></tr>
+<tr><td><b>Behaviour</b> such as refusals, verbosity, hedging</td><td></td></tr>
+</tbody></table></div>
+<div class="box warn"><b>Why fine-tuning facts backfires</b>
+<p>A few hundred examples mentioning a fact do not reliably store it. The model learns that it should <i>sound confident</i> about that kind of detail, then invents details it never saw. Research has found that fine-tuning on knowledge the model did not already have tends to increase hallucination. Keep facts in retrieval, where you can inspect and update them, and use fine-tuning to teach the model <i>how</i> to work with them.</p></div>
+
+<h2>A decision checklist</h2>
+<ol>
+<li>Have I written a clear system prompt with two or three examples, and tested it on ten real inputs?</li>
+<li>Is the missing piece <i>knowledge</i>? If yes, build RAG.</li>
+<li>Have I tried a newer or larger model that still fits my GPU?</li>
+<li>Is it one behavioural axis (length, tone)? Try steering.</li>
+<li>Do I have, or can I make, a few hundred high-quality examples of exactly the behaviour I want? If yes, fine-tune.</li>
+</ol>
+
+<div class="quiz"><h3>Check yourself</h3>
+<div class="q" data-correct="3"><p class="qt">You want a model that answers questions about your 300-page product manual. What is the right tool?</p><ol><li>Fine-tune on the manual</li><li>A longer system prompt</li><li>RAG over the manual</li></ol><p class="why">Facts belong in retrieval. Fine-tuning teaches habits, not reliable knowledge.</p></div>
+<div class="q" data-correct="1"><p class="qt">Your model ignores a format instruction one time in five, even with examples. What next?</p><ol><li>Fine-tune on a few hundred correct examples of that format</li><li>Pre-train a new model</li><li>Raise the temperature</li></ol><p class="why">Consistent formats are a classic fine-tuning win once prompting plateaus.</p></div>
+</div>

@@ -1,0 +1,97 @@
+<!-- {"id": "local-api", "module": "6", "title": "Use your model from Python: the local API", "minutes": 14, "optional": false} -->
+<p class="lede">Chatting in an app is fun. The real power arrives when your own scripts can call the model. Both LM Studio and Ollama run a local web server that speaks the same API as OpenAI, so almost any tutorial code works with a one-line change.</p>
+<div class="goals"><h4>What you will learn</h4><ul>
+<li>Start the LM Studio and Ollama servers</li>
+<li>Call them from Python with the OpenAI library and with plain requests</li>
+<li>Stream tokens as they are generated</li>
+<li>Build a small reusable function you will use in later modules</li>
+</ul></div>
+
+<h2>Start a server</h2>
+<div class="tw"><table><thead><tr><th></th><th>LM Studio</th><th>Ollama</th></tr></thead><tbody>
+<tr><td>Start</td><td>Developer tab, then "Start server", or <code>lms server start</code></td><td>Runs automatically after install</td></tr>
+<tr><td>Base URL</td><td><code>http://localhost:1234/v1</code></td><td><code>http://localhost:11434/v1</code></td></tr>
+<tr><td>Model name</td><td>Shown in the app, for example the model identifier</td><td>As in <code>ollama list</code></td></tr>
+<tr><td>API key</td><td>Not checked</td><td>Not checked</td></tr>
+</tbody></table></div>
+<p>In LM Studio, load a model first or enable just-in-time loading. Check it responds:</p>
+<pre data-lang="powershell"><code>curl http://localhost:1234/v1/models</code></pre>
+
+<h2>Your first call</h2>
+<pre data-lang="powershell"><code>cd $HOME\ai-lab
+.venv\Scripts\Activate.ps1
+pip install openai</code></pre>
+<pre data-lang="python"><code>from openai import OpenAI
+
+# LM Studio: port 1234.  Ollama: use "http://localhost:11434/v1"
+client = OpenAI(base_url="http://localhost:1234/v1", api_key="not-needed")
+
+reply = client.chat.completions.create(
+    model="your-model-name",          # copy from the app or "ollama list"
+    messages=[
+        {"role": "system", "content": "You are a concise tutor."},
+        {"role": "user", "content": "Explain VRAM in two sentences."},
+    ],
+    temperature=0.3,
+)
+print(reply.choices[0].message.content)</code></pre>
+
+<div class="box concept"><b>Concept: messages are the memory</b>
+<p>The model has no memory between calls. To continue a conversation, you append each answer and each new question to the <code>messages</code> list and send the whole list again. This is exactly the "context window as memory" idea from lesson 1.4, now written in code.</p></div>
+
+<h2>A tiny chat loop</h2>
+<pre data-lang="python"><code>from openai import OpenAI
+
+client = OpenAI(base_url="http://localhost:1234/v1", api_key="x")
+messages = [{"role": "system", "content": "You are a friendly tutor."}]
+
+while True:
+    user = input("You: ")
+    if user.strip().lower() in {"quit", "exit"}:
+        break
+    messages.append({"role": "user", "content": user})
+    out = client.chat.completions.create(model="your-model-name", messages=messages)
+    text = out.choices[0].message.content
+    print("AI:", text)
+    messages.append({"role": "assistant", "content": text})</code></pre>
+<p>Notice the list keeps growing. After many turns it will approach the context limit. That is why long chats degrade.</p>
+
+<h2>Streaming</h2>
+<pre data-lang="python"><code>stream = client.chat.completions.create(
+    model="your-model-name",
+    messages=[{"role": "user", "content": "Write a haiku about GPUs."}],
+    stream=True,
+)
+for chunk in stream:
+    print(chunk.choices[0].delta.content or "", end="", flush=True)
+print()</code></pre>
+
+<h2>Measure speed in code</h2>
+<pre data-lang="python"><code>import time
+start = time.time()
+out = client.chat.completions.create(
+    model="your-model-name",
+    messages=[{"role": "user", "content": "Write 150 words about oceans."}],
+)
+secs = time.time() - start
+tokens = out.usage.completion_tokens
+print(f"{tokens} tokens in {secs:.1f}s = {tokens/secs:.1f} tokens/sec")</code></pre>
+
+<h2>Native Ollama API</h2>
+<p>Ollama also has its own simpler endpoint:</p>
+<pre data-lang="python"><code>import requests
+r = requests.post("http://localhost:11434/api/generate",
+                  json={"model": "llama3.2", "prompt": "Why is the sky blue?", "stream": False},
+                  timeout=300)
+print(r.json()["response"])</code></pre>
+
+<div class="box tip"><b>Mini project</b>
+<p>Write <code>ask.py</code>: it reads a text file from the command line, sends it to your model with a summarising prompt at temperature 0.2, prints the summary and the tokens per second. Run it on three files. Save it in <code>ai-lab</code>. You will reuse the pattern constantly.</p></div>
+
+<div class="box warn"><b>Keep it local</b>
+<p>The examples use <code>localhost</code>, which only your own PC can reach. Do not change the address to your network address unless you understand the security implications (lesson 6.4).</p></div>
+
+<div class="quiz"><h3>Check yourself</h3>
+<div class="q" data-correct="3"><p class="qt">To continue a conversation through the API you must:</p><ol><li>Wait for the model to remember</li><li>Reload the model every time</li><li>Send the earlier messages again in the messages list</li></ol><p class="why">The API is stateless. You supply the history each time.</p></div>
+<div class="q" data-correct="1"><p class="qt">What must change when moving the OpenAI-library code from LM Studio to Ollama?</p><ol><li>The base URL (port) and the model name</li><li>The whole library</li><li>Nothing at all</li></ol><p class="why">Both speak the same API, so only the address and model name differ.</p></div>
+</div>

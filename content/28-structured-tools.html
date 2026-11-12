@@ -1,0 +1,135 @@
+<!-- {"id": "structured-tools", "module": "6", "title": "Structured output and tool calling", "minutes": 16, "optional": false} -->
+<p class="lede">Programs need answers they can parse, and models need a way to ask for facts they cannot compute. Structured output forces replies into an exact JSON shape. Tool calling lets the model ask your code to run functions. Together they are the foundation of every automation and agent.</p>
+<div class="goals"><h4>What you will learn</h4><ul>
+<li>Explain how constrained decoding guarantees valid JSON</li>
+<li>Get schema-checked output from LM Studio or Ollama with Pydantic</li>
+<li>Explain the tool-calling loop and its wire format</li>
+<li>Build a working two-tool assistant and handle bad calls safely</li>
+</ul></div>
+
+<h2>Constrained decoding</h2>
+<p>At every step the model scores every token (lesson 7.4). Constrained decoding adds a filter: a grammar describes every allowed output, and any token that would break it gets probability zero. Normal sampling then picks among the survivors.</p>
+<p>Example: your schema says <code>category</code> must be <code>"billing"</code>, <code>"bug"</code> or <code>"other"</code>. After <code>{"category": "</code>, a token like <code>"complaint"</code> is impossible no matter how much the model wanted it.</p>
+<div class="box concept"><b>Concept: valid is not the same as true</b>
+<p>The grammar guarantees the shape, not the content. A field can be perfectly valid and completely wrong. Also, the schema constrains output but is not automatically explained to the model, so describe each field in your prompt too.</p></div>
+<p>LM Studio and Ollama both run on llama.cpp, which converts a JSON Schema into its grammar format. Keep schemas simple: objects, arrays, strings, integers, booleans and enums. Some advanced JSON Schema features are not supported.</p>
+
+<h2>Structured output with Pydantic</h2>
+<p><b>Pydantic</b> lets you define the schema as a Python class, send it, and validate the reply in one line.</p>
+<pre data-lang="python"><code>from typing import Literal
+from openai import OpenAI
+from pydantic import BaseModel, Field
+
+client = OpenAI(base_url="http://localhost:1234/v1", api_key="lm-studio")   # Ollama: port 11434
+MODEL = "your-model-id"
+
+
+class Ticket(BaseModel):
+    category: Literal["billing", "bug", "other"] = Field(description="The kind of request")
+    urgency: int = Field(ge=1, le=5, description="1 = can wait, 5 = urgent")
+    summary: str = Field(description="One sentence, under 20 words")
+
+
+email = "Hi, I was charged twice this month and need a refund before Friday."
+r = client.chat.completions.create(
+    model=MODEL, temperature=0,
+    messages=[{"role": "system", "content": "Classify support emails. Fields: category, urgency 1-5, one-sentence summary."},
+              {"role": "user", "content": email}],
+    response_format={"type": "json_schema",
+                     "json_schema": {"name": "ticket", "strict": True, "schema": Ticket.model_json_schema()}})
+ticket = Ticket.model_validate_json(r.choices[0].message.content)
+print(ticket)</code></pre>
+<pre data-lang="powershell"><code>pip install openai pydantic</code></pre>
+
+<h2>Tool calling: the concept</h2>
+<p>A model can only produce text. It cannot check the time, do exact arithmetic or read a database. With <b>tool calling</b> you describe tools (name, purpose, argument schema). When the model wants one, it replies with a <b>tool call</b> instead of an answer. Your code runs the real function and sends the result back with role <code>tool</code>. The model then answers, or calls another tool.</p>
+<div class="box concept"><b>Concept: the model never executes anything</b>
+<p>Think of tool calls as requests. Your code decides whether to run them and with what arguments. That is why validating arguments in your tool code is not optional, especially with an uncensored model or untrusted input (lesson 6.4).</p></div>
+
+<h2>The wire format</h2>
+<ol>
+<li>Your request includes a <code>tools</code> list.</li>
+<li>The model replies with <code>tool_calls</code>: each has an <code>id</code>, a function <code>name</code> and <code>arguments</code> as a JSON string.</li>
+<li>You append that assistant message, then one <code>{"role": "tool", "tool_call_id": ..., "content": result}</code> message per call.</li>
+<li>You call the model again with the extended messages.</li>
+</ol>
+<p>Behind the scenes, the chat template (lesson 7.3) renders the tool definitions and calls into special text the model was trained on. Models trained for tool use (most current instruct models) do this far more reliably than older ones. LM Studio marks such models with a tool-use badge.</p>
+
+<h2>A working two-tool assistant</h2>
+<pre data-lang="python"><code>"""tools_demo.py: a calculator and a clock, called by a local model."""
+import ast, datetime, json, operator
+from openai import OpenAI
+
+client = OpenAI(base_url="http://localhost:1234/v1", api_key="lm-studio")
+MODEL = "your-model-id"
+OPS = {ast.Add: operator.add, ast.Sub: operator.sub, ast.Mult: operator.mul,
+       ast.Div: operator.truediv, ast.Pow: operator.pow, ast.USub: operator.neg}
+
+
+def calculator(expression: str) -> str:
+    """Safely evaluate + - * / ** on numbers (no eval of arbitrary code)."""
+    def ev(n):
+        if isinstance(n, ast.Constant) and isinstance(n.value, (int, float)):
+            return n.value
+        if isinstance(n, ast.BinOp) and type(n.op) in OPS:
+            return OPS[type(n.op)](ev(n.left), ev(n.right))
+        if isinstance(n, ast.UnaryOp) and type(n.op) in OPS:
+            return OPS[type(n.op)](ev(n.operand))
+        raise ValueError("only numbers and + - * / ** are allowed")
+    return str(ev(ast.parse(expression, mode="eval").body))
+
+
+def current_time() -> str:
+    return datetime.datetime.now().strftime("%Y-%m-%d %H:%M")
+
+
+FUNCS = {"calculator": calculator, "current_time": current_time}
+TOOLS = [
+    {"type": "function", "function": {"name": "calculator",
+     "description": "Evaluate an arithmetic expression exactly, e.g. '17.5 * 3 + 2'.",
+     "parameters": {"type": "object", "properties": {"expression": {"type": "string"}}, "required": ["expression"]}}},
+    {"type": "function", "function": {"name": "current_time",
+     "description": "Get the current local date and time.",
+     "parameters": {"type": "object", "properties": {}}}},
+]
+
+
+def ask(question: str) -> str:
+    messages = [{"role": "system", "content": "Use the tools for arithmetic and the current time. Never guess them."},
+                {"role": "user", "content": question}]
+    for _ in range(5):                                          # hard limit on tool rounds
+        msg = client.chat.completions.create(model=MODEL, messages=messages, tools=TOOLS,
+                                             temperature=0).choices[0].message
+        if not msg.tool_calls:
+            return msg.content
+        messages.append({"role": "assistant", "content": msg.content or "",
+                         "tool_calls": [tc.model_dump() for tc in msg.tool_calls]})
+        for tc in msg.tool_calls:
+            try:
+                fn = FUNCS.get(tc.function.name)
+                if fn is None:
+                    raise ValueError(f"unknown tool {tc.function.name}")
+                result = fn(**json.loads(tc.function.arguments or "{}"))
+            except Exception as e:                            # unknown tool, bad JSON, bad arguments
+                result = f"error: {e}"
+            print(f"  [tool] {tc.function.name}({tc.function.arguments}) -> {result}")
+            messages.append({"role": "tool", "tool_call_id": tc.id, "content": str(result)})
+    return "Stopped after 5 tool rounds."
+
+
+print(ask("What time is it, and what is 1234.5 * 17 minus 99?"))</code></pre>
+<h3>Handling bad calls</h3>
+<ul>
+<li><b>Malformed JSON or unknown tools</b>: send the error back as the tool result. Models usually correct themselves.</li>
+<li><b>Loops</b>: always cap the number of rounds.</li>
+<li><b>Dangerous tools</b>: anything that deletes, sends, spends or runs commands should ask a human first. Never pass model output straight into a shell.</li>
+</ul>
+
+<div class="box tip"><b>Lab: add a third tool</b>
+<p>Add <code>read_note(name)</code> that returns the text of a file from your <code>ai-lab\notes</code> folder. Validate that the name contains no <code>..</code> or slashes so the model cannot read files elsewhere. Ask the model a question that needs one of your notes.</p></div>
+
+<div class="quiz"><h3>Check yourself</h3>
+<div class="q" data-correct="2"><p class="qt">Schema enforcement is on. Can the model still return a wrong value in a valid field?</p><ol><li>No, the grammar prevents it</li><li>Yes. The grammar guarantees shape, not truth.</li><li>Only at high temperature</li></ol><p class="why">Validate facts separately from format.</p></div>
+<div class="q" data-correct="3"><p class="qt">Who executes a tool call?</p><ol><li>The model</li><li>LM Studio automatically</li><li>Your code, after checking the arguments</li></ol><p class="why">The model only requests. Your code decides and runs.</p></div>
+<div class="q" data-correct="1"><p class="qt">Why cap the number of tool rounds?</p><ol><li>To stop endless call loops</li><li>Because the API requires it</li><li>To save disk space</li></ol><p class="why">Small models sometimes call tools repeatedly.</p></div>
+</div>

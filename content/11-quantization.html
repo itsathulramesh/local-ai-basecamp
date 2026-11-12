@@ -1,0 +1,100 @@
+<!-- {"id": "quantization", "module": "3", "title": "Parameters, precision and quantization", "minutes": 12, "optional": false} -->
+<p class="lede">A 9-billion-parameter model sounds like it must be enormous. How big it is on disk and in memory depends on how many bits each number uses. Shrinking the bits is called quantization, and it is the trick that lets big models fit on small cards.</p>
+<div class="goals"><h4>What you will learn</h4><ul>
+<li>Compute a model's size from its parameter count and precision</li>
+<li>Explain what quantization is and what it costs in quality</li>
+<li>Quantize a block of weights by hand and see where the error comes from</li>
+<li>Read names like Q4_K_M and Q8_0</li>
+<li>Choose a sensible quantization for your VRAM</li>
+</ul></div>
+
+<h2>Size = parameters × bits per weight</h2>
+<p>Each weight is a number, and a number takes memory. Models are usually trained in 16-bit precision (2 bytes per weight). So a 9B model at 16 bits is about 9 × 2 = 18 GB. A 70B model is 140 GB. That is too big for any home graphics card.</p>
+<div class="box concept"><b>Concept: quantization</b>
+<p>Quantization stores each weight with fewer bits, for example 4 bits instead of 16. The model becomes about four times smaller. Because the weights are stored less precisely, there is a small loss of quality. It is like saving a photo as JPEG: much smaller, and for most purposes you cannot tell.</p></div>
+
+<h2>The formula</h2>
+<p>Size in GB ≈ parameters (in billions) × bits per weight ÷ 8.</p>
+<p>Example: 9B at Q4_K_M, which averages about 4.9 bits per weight: 9 × 4.9 ÷ 8 ≈ 5.5 GB. A real 9B Q4_K_M file measures about 5.6 GB, which matches.</p>
+
+<h2>How quantization works</h2>
+<p>Quantization stores each weight as a small integer plus a shared <b>scale</b>. To use a weight, the runtime multiplies the integer by the scale. Weights are handled in small <b>blocks</b> (32 or 256 weights in llama.cpp), each with its own scale, so one unusual value only affects its own block.</p>
+<h3>Worked example: eight weights to 4 bits</h3>
+<p>Take a block of eight weights: <code>[0.20, −0.35, 0.10, 0.04, −0.15, 0.70, −0.22, 0.30]</code>. Four bits gives 16 integer levels, −8 to 7.</p>
+<ol>
+<li><b>Scale.</b> Map the largest magnitude (0.70) to 7: scale = 0.70 ÷ 7 = 0.10.</li>
+<li><b>Round.</b> Divide each weight by the scale and round to the nearest integer.</li>
+<li><b>Dequantize.</b> Multiply back: the model computes with these values.</li>
+</ol>
+<div class="tw"><table><thead><tr><th>Weight</th><th>÷ 0.10</th><th>4-bit integer</th><th>Back to a number</th><th>Error</th></tr></thead><tbody>
+<tr><td class="num">0.20</td><td class="num">2.0</td><td class="num">2</td><td class="num">0.20</td><td class="num">0.00</td></tr>
+<tr><td class="num">−0.35</td><td class="num">−3.5</td><td class="num">−4</td><td class="num">−0.40</td><td class="num">−0.05</td></tr>
+<tr><td class="num">0.10</td><td class="num">1.0</td><td class="num">1</td><td class="num">0.10</td><td class="num">0.00</td></tr>
+<tr><td class="num">0.04</td><td class="num">0.4</td><td class="num">0</td><td class="num">0.00</td><td class="num">−0.04</td></tr>
+<tr><td class="num">−0.15</td><td class="num">−1.5</td><td class="num">−2</td><td class="num">−0.20</td><td class="num">−0.05</td></tr>
+<tr><td class="num">0.70</td><td class="num">7.0</td><td class="num">7</td><td class="num">0.70</td><td class="num">0.00</td></tr>
+<tr><td class="num">−0.22</td><td class="num">−2.2</td><td class="num">−2</td><td class="num">−0.20</td><td class="num">+0.02</td></tr>
+<tr><td class="num">0.30</td><td class="num">3.0</td><td class="num">3</td><td class="num">0.30</td><td class="num">0.00</td></tr>
+</tbody></table></div>
+<p>The typical (root-mean-square) error is about 0.03, roughly 12% of an average weight here. Notice that the tiny weight 0.04 became exactly zero.</p>
+<ul>
+<li><b>Storage.</b> 8 weights × 4 bits plus one 16-bit scale = 48 bits, or 6 bits per weight. With blocks of 32, the scale is shared more widely: (32 × 4 + 16) ÷ 32 = 4.5 bits per weight. That is exactly llama.cpp's <code>Q4_0</code> layout.</li>
+<li><b>The outlier problem.</b> Change 0.70 to 0.32 and the scale halves, so the grid is finer and the error drops to about a third. One big weight stretches the grid for its whole block. This is why real schemes use small blocks and keep sensitive layers at higher precision.</li>
+<li><b>Scale plus minimum.</b> Mapping the block's actual range (−0.35 to 0.70) onto the 16 levels instead of a symmetric grid cuts the error by about 40% here. The K-quants (<code>Q4_K_M</code> and friends) use this idea, with blocks grouped into "super-blocks".</li>
+<li><b>Importance matrix (imatrix).</b> Statistics from running the model on sample text tell the quantizer which weights matter most, so it spends precision where it counts. Files labelled "imatrix" or "i1" usually lose less quality at 4 bits and below.</li>
+</ul>
+
+<h2>Reading quantization names</h2>
+<p>The popular format for local models is <b>GGUF</b>. Its quantization names look like <code>Q4_K_M</code>:</p>
+<ul>
+<li><b>Q4</b>: about 4 bits per weight on average.</li>
+<li><b>K</b>: the "K-quant" method, which gives more bits to the most sensitive parts.</li>
+<li><b>M</b> (medium): a size variant. S is small, L is large.</li>
+<li><b>Q8_0</b>: 8 bits, an older simple scheme. Near-lossless.</li>
+<li><b>F16</b> or <b>BF16</b>: the original 16-bit precision.</li>
+<li>Names like <b>IQ3_XS</b> use cleverer compression for very low bit counts.</li>
+<li><b>MXFP4</b>: a 4-bit floating-point format some newer models are released in directly.</li>
+</ul>
+
+<h2>Explore it</h2>
+<div class="widget" data-widget="quant"></div>
+
+<h2>The quality curve</h2>
+<div class="tw"><table><thead><tr><th>Level</th><th>Rough effect</th><th>When to use</th></tr></thead><tbody>
+<tr><td>F16 / BF16</td><td>Original</td><td>Reference, fine-tuning inputs</td></tr>
+<tr><td>Q8_0</td><td>Almost no loss</td><td>When you have spare VRAM</td></tr>
+<tr><td>Q6_K</td><td>Very close to original</td><td>Good when it fits</td></tr>
+<tr><td>Q5_K_M</td><td>Close</td><td>Good balance</td></tr>
+<tr><td>Q4_K_M</td><td>Small, usually acceptable loss</td><td>The usual sweet spot</td></tr>
+<tr><td>Q3_K_M</td><td>Noticeable loss</td><td>Only to squeeze a bigger model in</td></tr>
+<tr><td>Q2_K</td><td>Large loss, often unreliable</td><td>Rarely a good idea</td></tr>
+</tbody></table></div>
+
+<h2>How quality loss is measured</h2>
+<ul>
+<li><b>Perplexity (PPL)</b>: how surprised the model is by real text. Lower is better. For quantization you look at the <i>increase</i> compared with the original.</li>
+<li><b>KL divergence (KLD)</b>: how different the quantized model's whole probability distribution is from the original's at each step. Zero means identical. It catches changes perplexity can hide.</li>
+</ul>
+<p>llama.cpp publishes measurements like these for Llama 3 8B. The pattern holds for most models:</p>
+<div class="tw"><table><thead><tr><th>Quantization</th><th>Size (GiB)</th><th>Perplexity increase</th><th>KL divergence</th></tr></thead><tbody>
+<tr><td>Q8_0</td><td class="num">7.96</td><td class="num">+0.003</td><td class="num">0.001</td></tr>
+<tr><td>Q6_K</td><td class="num">6.14</td><td class="num">+0.022</td><td class="num">0.006</td></tr>
+<tr><td>Q5_K_M</td><td class="num">5.33</td><td class="num">+0.057</td><td class="num">0.011</td></tr>
+<tr><td>Q4_K_M (with imatrix)</td><td class="num">4.58</td><td class="num">+0.151</td><td class="num">0.028</td></tr>
+<tr><td>Q3_K_M</td><td class="num">3.74</td><td class="num">+0.657</td><td class="num">0.102</td></tr>
+<tr><td>Q2_K (with imatrix)</td><td class="num">2.96</td><td class="num">+2.416</td><td class="num">0.332</td></tr>
+</tbody></table></div>
+<p>Notice the knee: going from 8 bits down to about 4.5 costs little, and every step below 4 bits costs much more than the last.</p>
+
+<h2>A note on 16-bit formats</h2>
+<p>Training normally uses <b>BF16</b>, a 16-bit floating-point format with the same range as 32-bit numbers but less precision. The older <b>FP16</b> has more precision but a much smaller range, so large values can overflow during training. That is why you will see <code>bf16</code> in training scripts and in conversion commands (lesson 9.6).</p>
+
+<div class="box tip"><b>The golden rule</b>
+<p>A bigger model at Q4 usually beats a smaller model at Q8. A 14B model at Q4 (about 8.5 GB) is typically better than a 7B model at Q8 (about 7.5 GB). So the best use of your VRAM is to pick the biggest model that fits at around Q4 to Q5, then spend leftover memory on context.</p></div>
+<p>The exception is very small models (under about 4B). They suffer more from aggressive compression, so use Q6 or Q8 for them if they fit.</p>
+
+<div class="quiz"><h3>Check yourself</h3>
+<div class="q" data-correct="2"><p class="qt">About how large is a 14B model at roughly 4.9 bits per weight?</p><ol><li>14 GB</li><li>About 8.6 GB</li><li>About 28 GB</li></ol><p class="why">14 × 4.9 ÷ 8 ≈ 8.6 GB.</p></div>
+<div class="q" data-correct="3"><p class="qt">Which usually gives better results on the same 8 GB card?</p><ol><li>A 3B model at F16</li><li>A 1B model at Q8</li><li>A 9B model at Q4</li></ol><p class="why">Parameter count matters more than precision once you are at about 4 bits.</p></div>
+<div class="q" data-correct="1"><p class="qt">What does the "K" in Q4_K_M mean?</p><ol><li>The K-quant method, which spends more bits on sensitive weights</li><li>1,000 parameters</li><li>The model has been keyed to your GPU</li></ol><p class="why">It names the quantization method, not a hardware setting.</p></div>
+</div>

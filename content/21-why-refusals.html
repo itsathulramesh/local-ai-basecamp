@@ -1,0 +1,64 @@
+<!-- {"id": "why-refusals", "module": "5", "title": "Why models refuse: alignment explained", "minutes": 10, "optional": false} -->
+<p class="lede">Sometimes a model says "I can't help with that." Before looking at models that do not do this, you need to understand where refusals come from, because the answer changes how you think about "uncensored".</p>
+<div class="goals"><h4>What you will learn</h4><ul>
+<li>Explain how a model learns to refuse</li>
+<li>Separate three layers of behaviour control: weights, system prompts and external filters</li>
+<li>Understand over-refusal, why learned refusals misfire, and how to spot silent degradation</li>
+<li>Understand what real safety work is trying to achieve</li>
+</ul></div>
+
+<h2>Where refusals come from</h2>
+<p>A model fresh from pre-training (lesson 1.3) has read everything from medical textbooks to hateful forums. It will happily continue any kind of text. The assistant behaviour you know is added afterwards.</p>
+<ol>
+<li><b>Instruction tuning</b> teaches the model to answer as a helpful assistant.</li>
+<li><b>Preference training</b> (RLHF, DPO and similar) uses human or model ratings of answers to push the model towards helpful, honest, harmless replies, including declining some requests.</li>
+<li><b>System prompts</b> add rules at run time ("never discuss X").</li>
+<li><b>External filters</b> are separate programs that check inputs and outputs. They exist around cloud products but not inside the weights you download.</li>
+</ol>
+<div class="box concept"><b>Concept: refusal is a learned habit, not a wall</b>
+<p>In an open-weight model, refusals live in the weights, as a trained tendency. There is no separate "censor" module to switch off. That is why the community talks about <i>changing the weights</i> (lesson 5.2 and module 10) rather than turning off a setting.</p></div>
+
+<h2>The alignment pipeline in more detail</h2>
+<ul>
+<li><b>Supervised fine-tuning (SFT).</b> The model is trained on curated example conversations, including examples of declining some requests ("I can't help with that, but here is…"). It learns the <i>pattern</i> of refusing along with format and tone.</li>
+<li><b>Reward model and RLHF.</b> Raters compare two answers to the same prompt. A separate <b>reward model</b> learns to predict which answer people prefer. Reinforcement learning then nudges the chat model toward answers the reward model scores highly, with a penalty that stops it drifting too far. This was popularised by OpenAI's InstructGPT work (2022).</li>
+<li><b>DPO.</b> A simpler method that learns directly from chosen-versus-rejected pairs, with no separate reward model. Cheap and stable, and you will run it yourself in lesson 9.7.</li>
+<li><b>AI feedback.</b> To save human effort, some labels come from models instead: RLAIF uses a model as the rater, and Anthropic's Constitutional AI has the model critique and revise its own answers against a written list of principles.</li>
+<li><b>Reasoning training</b> adds reinforcement learning on tasks with checkable answers, and safety behaviour is trained alongside it.</li>
+</ul>
+
+<h2>Why refusals misfire</h2>
+<p>The model never learns a rule like "refuse if the user is not authorised", because it cannot check that. It learns statistical associations: requests that <i>look like</i> these got refusals during training. Learned filters generalise by resemblance, so they produce false positives:</p>
+<ul>
+<li>"How do I kill a Python process that ignores Ctrl+C?" (the word "kill")</li>
+<li>"Write a villain's threatening monologue for my novel" (threatening language)</li>
+<li>"How does this malware sample stay installed, for my incident report?" (defensive, but alarming keywords)</li>
+</ul>
+<p>Researchers measure this with benchmarks like XSTest, which contains safe prompts that look risky. Over-refusal shows up in three ways: hard refusals, hedged answers where half the reply is warnings, and the worst kind, <b>silent degradation</b>, where the model appears to help but gives a vaguer or deliberately weakened answer.</p>
+
+<h2>What safety training is for</h2>
+<p>Developers train refusals for reasons most people agree with: not helping with serious harm such as weapons capable of mass casualties, child exploitation, targeted harassment or fraud, and reducing dangerous misinformation. A model that never refused anything would be a different product, and it would be the same model's builder who is responsible when it is misused.</p>
+
+<h2>Over-refusal</h2>
+<p>The problem is that the training is blunt. Models sometimes decline harmless requests because they look like harmful ones: a novelist asking for a villain's menacing speech, a nurse asking about drug doses, a security professional asking how a known attack works, a student asking about history's atrocities. This is called <b>over-refusal</b>, and it is the single biggest reason people look for different models.</p>
+<ul>
+<li>Smaller and older safety-tuned models over-refuse more.</li>
+<li>Clear context often fixes it: say who you are, what the legitimate purpose is, and what you need.</li>
+<li>A different aligned model may handle the same request fine. Models differ a lot.</li>
+</ul>
+
+<div class="box tip"><b>Try this before reaching for anything else</b>
+<p>When a model refuses a legitimate request, rewrite it with the context and purpose, make it specific and professional, and try another well-regarded model. Most over-refusals disappear without changing any weights.</p></div>
+
+<h2>Three ways people get around refusals</h2>
+<div class="tw"><table><thead><tr><th>Approach</th><th>What changes</th><th>Lasting?</th></tr></thead><tbody>
+<tr><td>Prompt tricks ("jailbreaks")</td><td>Only the text you send</td><td>No. Per conversation, and providers patch them.</td></tr>
+<tr><td>Fine-tuning on unfiltered data</td><td>The weights are trained further</td><td>Yes, baked into a new model</td></tr>
+<tr><td>Editing the weights directly (abliteration)</td><td>A learned direction is removed from the weights</td><td>Yes, baked into a new model</td></tr>
+</tbody></table></div>
+<p>The next lesson explains the last two.</p>
+
+<div class="quiz"><h3>Check yourself</h3>
+<div class="q" data-correct="1"><p class="qt">In a downloaded open-weight model, where does refusal behaviour live?</p><ol><li>In the weights, as learned tendencies from alignment training</li><li>In a separate filter program on your PC</li><li>In the GGUF file's header only</li></ol><p class="why">There is no external censor to disable. It is part of what the model learned.</p></div>
+<div class="q" data-correct="3"><p class="qt">What is over-refusal?</p><ol><li>A model refusing to load</li><li>A model that answers too slowly</li><li>A model declining harmless requests that merely resemble harmful ones</li></ol><p class="why">Blunt safety training can misfire on legitimate requests like fiction, medicine and security education.</p></div>
+</div>

@@ -1,0 +1,42 @@
+<!-- {"id": "why-local", "module": "1", "title": "Why run AI locally, and what to expect", "minutes": 7, "optional": false} -->
+<p class="lede">Before spending hours on setup it is worth being clear about what you get and what you do not. Setting expectations now saves frustration later.</p>
+<div class="goals"><h4>What you will learn</h4><ul>
+<li>List the real benefits of running locally</li>
+<li>Know the limits and what "good enough" looks like</li>
+<li>Decide which jobs go to which kind of model</li>
+</ul></div>
+
+<h2>The real benefits</h2>
+<ul>
+<li><b>Privacy.</b> Notes, source code, client documents and personal files never leave your computer.</li>
+<li><b>No metering.</b> Run a model on ten thousand files overnight and it costs only electricity.</li>
+<li><b>Offline.</b> It works on a plane, on a locked-down network, or when a service is down.</li>
+<li><b>Control.</b> You pick the model, the settings and the system prompt. Nobody changes the model under you.</li>
+<li><b>Learning.</b> You can see tokens, memory use, speeds and settings directly. Nothing teaches faster.</li>
+<li><b>Customisation.</b> Open weights can be fine-tuned, inspected and edited, which modules 9 and 10 teach.</li>
+</ul>
+
+<h2>The real limits</h2>
+<ul>
+<li>A model that fits a home GPU is much smaller than a frontier cloud model. Expect weaker reasoning on hard tasks, more mistakes, and less knowledge of obscure topics.</li>
+<li>Speed depends on your hardware. Short answers feel instant on a good GPU. Long reasoning chains can take minutes.</li>
+<li>You are the system administrator. You download updates, handle disk space and fix problems.</li>
+<li>No built-in web search, file upload or image tools. You add them.</li>
+</ul>
+
+<h2>Match the job to the tool</h2>
+<div class="tw"><table><thead><tr><th>Task</th><th>Good fit</th></tr></thead><tbody>
+<tr><td>Summarise a confidential document</td><td>Local</td></tr>
+<tr><td>Draft emails, rewrite text, brainstorm</td><td>Local is fine</td></tr>
+<tr><td>Classify or extract data from thousands of files</td><td>Local (no per-token cost)</td></tr>
+<tr><td>Explain code, small scripts, refactors</td><td>Local, ideally a coding-tuned model</td></tr>
+<tr><td>Hard maths, long multi-step research, big codebases</td><td>Cloud frontier model</td></tr>
+<tr><td>Up-to-the-minute facts</td><td>Cloud with web search</td></tr>
+</tbody></table></div>
+
+<div class="box tip"><b>Your first goal</b>
+<p>Do not aim to replace the cloud models. Aim to get one model running well on your own PC, understand why it behaves the way it does, and be able to explain every number on the screen. That understanding is what makes training possible later.</p></div>
+
+<div class="quiz"><h3>Check yourself</h3>
+<div class="q" data-correct="2"><p class="qt">Which task is the best fit for a local model?</p><ol><li>Searching today's news</li><li>Tagging 5,000 private support emails overnight</li><li>Solving a research-level maths problem</li></ol><p class="why">Bulk, private, repeatable work is where local shines. Fresh facts and the hardest reasoning favour cloud models.</p></div>
+</div>

@@ -1,0 +1,145 @@
+<!-- {"id": "first-lora", "module": "9", "title": "Train your first LoRA with Unsloth", "minutes": 18, "optional": false} -->
+<p class="lede">This is the moment the course has been building to. You will load a small model, attach a LoRA adapter, train it on your dataset, test it, and save it, all on your own NVIDIA GPU. The same script scales to bigger models by changing one line.</p>
+<div class="goals"><h4>What you will learn</h4><ul>
+<li>Run the full Unsloth flow: load, attach LoRA, format, mask, train, test, save</li>
+<li>Explain every hyperparameter you set</li>
+<li>Read the training and validation loss</li>
+<li>Adapt the script to other model families and sizes</li>
+</ul></div>
+
+<div class="box concept"><b>Concept: Unsloth</b>
+<p>An open-source library that speeds up and slims down fine-tuning by patching Hugging Face Transformers, PEFT and TRL. You write ordinary training code with Unsloth's model loader in front, and it can export straight to GGUF. It targets NVIDIA (and AMD) GPUs.</p></div>
+
+<h2>Choose your model</h2>
+<p>Start small so mistakes are cheap. Pick from the lesson 9.1 table:</p>
+<ul>
+<li>4 GB card (GTX 1650): <code>unsloth/Qwen3.5-0.8B</code> with <code>MAX_LEN = 1024</code>, batch size 1 and accumulation 8, or use free Colab for bigger models</li>
+<li>8 GB card: <code>unsloth/Qwen3.5-2B</code> (about 5 GB) or <code>unsloth/Qwen3.5-0.8B</code></li>
+<li>12 to 16 GB: <code>unsloth/Qwen3.5-4B</code> (about 10 GB)</li>
+<li>24 GB: <code>unsloth/Qwen3.5-9B</code> with short sequences, or rent a bigger GPU</li>
+</ul>
+<p>Model ids change. If an id is not found, search Hugging Face for the family under the <code>unsloth</code> organisation.</p>
+
+<h2>The script: train_lora.py</h2>
+<p>Save this inside WSL2 at <code>~/ai-lab/finetune/train_lora.py</code>, next to your <code>data</code> folder.</p>
+<pre data-lang="python"><code>from unsloth import FastLanguageModel          # import unsloth before transformers / trl
+from unsloth.chat_templates import train_on_responses_only
+from datasets import load_dataset
+from trl import SFTTrainer, SFTConfig
+
+MODEL = "unsloth/Qwen3.5-2B"     # change to fit your GPU (lesson 9.1)
+MAX_LEN = 2048                   # must cover your longest example
+OUT = "my-first-lora"
+
+# 1. Load the base model in 16-bit (Unsloth advises against 4-bit QLoRA for Qwen3.5)
+model, tokenizer = FastLanguageModel.from_pretrained(
+    model_name=MODEL, max_seq_length=MAX_LEN,
+    load_in_4bit=False, load_in_16bit=True, full_finetuning=False)
+
+# 2. Attach the LoRA adapter
+model = FastLanguageModel.get_peft_model(
+    model, r=16, lora_alpha=16, lora_dropout=0, bias="none",
+    target_modules=["q_proj", "k_proj", "v_proj", "o_proj",
+                    "gate_proj", "up_proj", "down_proj", "out_proj"],
+    use_gradient_checkpointing="unsloth", random_state=3407, max_seq_length=MAX_LEN)
+model.print_trainable_parameters()
+
+# 3. Render each conversation with the model's own chat template
+ds = load_dataset("json", data_files={"train": "data/train.jsonl", "validation": "data/valid.jsonl"})
+def to_text(batch):
+    return {"text": [tokenizer.apply_chat_template(m, tokenize=False, add_generation_prompt=False)
+                     for m in batch["messages"]]}
+ds = ds.map(to_text, batched=True, remove_columns=ds["train"].column_names)
+print(ds["train"][0]["text"][:600])            # eyeball the rendered template
+
+# 4. Trainer, then mask everything except the assistant replies
+trainer = SFTTrainer(
+    model=model, tokenizer=tokenizer,
+    train_dataset=ds["train"], eval_dataset=ds["validation"],
+    args=SFTConfig(
+        dataset_text_field="text", max_length=MAX_LEN,
+        per_device_train_batch_size=2, gradient_accumulation_steps=4,
+        num_train_epochs=2, learning_rate=2e-4, warmup_steps=10,
+        lr_scheduler_type="linear", optim="adamw_8bit", weight_decay=0.001,
+        logging_steps=5, eval_strategy="steps", eval_steps=25, save_steps=25,
+        output_dir="outputs", seed=3407, report_to="none"))
+trainer = train_on_responses_only(trainer,
+    instruction_part="&lt;|im_start|&gt;user\n", response_part="&lt;|im_start|&gt;assistant\n")
+
+row = trainer.train_dataset[0]                 # check: only the answer should print
+print(tokenizer.decode([t for t, l in zip(row["input_ids"], row["labels"]) if l != -100]))
+
+trainer.train()
+
+# 5. Quick test
+FastLanguageModel.for_inference(model)
+msgs = [{"role": "user", "content": "A question like the ones in your dataset"}]
+ids = tokenizer.apply_chat_template(msgs, add_generation_prompt=True, return_tensors="pt",
+                                    return_dict=True, enable_thinking=False).to("cuda")
+out = model.generate(**ids, max_new_tokens=300, temperature=0.7, top_p=0.8)
+print(tokenizer.decode(out[0][ids["input_ids"].shape[1]:], skip_special_tokens=True))
+
+# 6. Save the adapter (small) and a ready-to-run GGUF
+model.save_pretrained(OUT)
+tokenizer.save_pretrained(OUT)
+model.save_pretrained_gguf(OUT + "-gguf", tokenizer, quantization_method="q4_k_m")</code></pre>
+<pre data-lang="bash"><code>cd ~/ai-lab/finetune && source .venv/bin/activate
+python train_lora.py 2>&1 | tee train.log</code></pre>
+<p>In a second Windows terminal, watch <code>nvidia-smi -l 1</code>. The first run can pause for a while before step 1 while Unsloth compiles kernels.</p>
+
+<div class="box concept"><b>Concept: train on responses only</b>
+<p>Sets the label of every token outside the assistant replies to -100, a value the loss ignores. The model still <i>reads</i> the system prompt and the question but is only graded on writing the answer. The decoded check line should print only answers. The markers in <code>instruction_part</code> and <code>response_part</code> are for Qwen-style templates. Other families use different markers, so copy them from your printed template.</p></div>
+
+<h2>Common training errors</h2>
+<div class="tw"><table><thead><tr><th>Error or symptom</th><th>Fix</th></tr></thead><tbody>
+<tr><td><code>torch.cuda.is_available()</code> is False in WSL2</td><td>Update the Windows NVIDIA driver, run <code>wsl --shutdown</code>, reopen Ubuntu. Never install a Linux NVIDIA driver inside WSL.</td></tr>
+<tr><td>"no kernel image is available for execution"</td><td>Your PyTorch build is too old for the GPU (common with RTX 50-series). Install the newest CUDA build from pytorch.org.</td></tr>
+<tr><td>CUDA out of memory</td><td>Batch size 1, more accumulation, shorter <code>MAX_LEN</code>, or a smaller model (lesson 9.1).</td></tr>
+<tr><td>Long pause before step 1</td><td>Normal on the first run while kernels compile. Wait a few minutes.</td></tr>
+<tr><td>"bf16 not supported" or similar</td><td>Older GPUs (GTX 16, RTX 20, Colab T4) use float16. Let Unsloth choose the dtype automatically.</td></tr>
+<tr><td>Model id not found</td><td>Names change. Search Hugging Face for the model under the <code>unsloth</code> organisation.</td></tr>
+<tr><td>The decoded mask shows prompts too</td><td>The response markers do not match your model's template. Copy them from the printed template.</td></tr>
+<tr><td>Loss is <code>nan</code></td><td>Halve the learning rate.</td></tr>
+</tbody></table></div>
+
+<h2>Reading the loss</h2>
+<div class="tw"><table><thead><tr><th>What you see</th><th>Meaning</th><th>Action</th></tr></thead><tbody>
+<tr><td>Both losses fall, then level off</td><td>Healthy</td><td>Keep the run</td></tr>
+<tr><td>Training loss falls, validation loss rises</td><td>Overfitting</td><td>Fewer epochs, use an earlier checkpoint, more data</td></tr>
+<tr><td>Training loss near zero</td><td>Memorising</td><td>Fewer epochs, lower learning rate</td></tr>
+<tr><td><code>nan</code> or sudden spikes</td><td>Learning rate too high</td><td>Halve it</td></tr>
+<tr><td>Barely moves</td><td>Learning rate too low, or masking wrong</td><td>Check the decoded mask line, raise learning rate</td></tr>
+<tr><td>CUDA out of memory</td><td>Too big for your card</td><td>Batch 1, accumulation 8, shorter <code>MAX_LEN</code>, smaller model</td></tr>
+</tbody></table></div>
+
+<h2>Hyperparameters, explained</h2>
+<div class="tw"><table><thead><tr><th>Setting</th><th>What it does</th><th>Value and why</th></tr></thead><tbody>
+<tr><td><code>r</code></td><td>Adapter capacity</td><td>16. Raise to 32 for harder skills</td></tr>
+<tr><td><code>lora_alpha</code></td><td>Adapter strength (alpha ÷ r)</td><td>Equal to r, or 2 × r</td></tr>
+<tr><td><code>lora_dropout</code></td><td>Randomly drops adapter inputs to fight overfitting</td><td>0 (fast path). 0.05 for small datasets that overfit</td></tr>
+<tr><td><code>learning_rate</code></td><td>Step size</td><td>2e-4 for short runs. Lower toward 2e-5 for long ones</td></tr>
+<tr><td><code>num_train_epochs</code></td><td>Passes through the data</td><td>1 to 3</td></tr>
+<tr><td>batch × accumulation</td><td>Examples per update</td><td>2 × 4 = 8</td></tr>
+<tr><td><code>warmup_steps</code></td><td>Gentle start</td><td>5 to 10% of total steps</td></tr>
+<tr><td><code>optim</code></td><td>Optimizer</td><td><code>adamw_8bit</code> saves memory</td></tr>
+<tr><td><code>eval_steps</code></td><td>How often validation loss is computed</td><td>Enough for 10 to 20 points per run</td></tr>
+<tr><td><code>seed</code></td><td>Reproducibility</td><td>Any fixed number</td></tr>
+</tbody></table></div>
+<div class="box tip"><b>Change one thing at a time</b>
+<p>Keep a table in your notes: run name, model, data size, r, learning rate, epochs, final validation loss, and your verdict. Without it you cannot tell which change helped.</p></div>
+
+<h2>Thinking models</h2>
+<p>With Qwen3.5's template, examples without reasoning are rendered with an empty <code>&lt;think&gt;</code> block, which teaches the "thinking off" style. That matches running the model with thinking off. If you want your fine-tune to keep thinking, include reasoning in most examples (Unsloth suggests at least 75%) and evaluate with thinking on.</p>
+
+<h2>Other model families</h2>
+<ul>
+<li>Llama, Gemma, Mistral and many others: change <code>MODEL</code>, use <code>load_in_4bit=True</code> for QLoRA if you need the memory, and drop <code>out_proj</code> from the target list.</li>
+<li>Change the <code>instruction_part</code> and <code>response_part</code> markers to that family's template.</li>
+<li>Unsloth publishes a notebook per popular model. Its first cells are the most reliable source of current settings.</li>
+</ul>
+
+<div class="quiz"><h3>Check yourself</h3>
+<div class="q" data-correct="1"><p class="qt">The decoded check line prints the system prompt and question as well as the answer. What is wrong?</p><ol><li>The response masking markers do not match your template</li><li>The learning rate</li><li>The GPU</li></ol><p class="why">If the markers are wrong, nothing gets masked and the model trains on the prompts too.</p></div>
+<div class="q" data-correct="3"><p class="qt">You run out of memory at step 1. First change to try?</p><ol><li>Raise the learning rate</li><li>Raise the rank to 64</li><li>Batch size 1 with more accumulation, and a shorter max length</li></ol><p class="why">Activations dominate memory, and they scale with batch and sequence length.</p></div>
+<div class="q" data-correct="2"><p class="qt">What three things does the script save?</p><ol><li>Only the dataset</li><li>The adapter, the tokenizer files, and a Q4_K_M GGUF</li><li>Nothing, it stays in memory</li></ol><p class="why">Keep the adapter and tokenizer files. The GGUF is ready for LM Studio or Ollama.</p></div>
+</div>

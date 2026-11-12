@@ -1,0 +1,64 @@
+<!-- {"id": "roadmap", "module": "R", "title": "The 8-week learning plan", "minutes": 7, "optional": false} -->
+<p class="lede">Eight weeks at about six hours a week takes you from "I only use chat apps" to training, steering and uncensoring your own models. Weeks 1 to 4 build the foundations. Weeks 5 to 8 are about training and editing. Every week ends with something you build. Tick boxes as you go. They are remembered in this browser.</p>
+
+<div class="box concept"><b>A typical week</b>
+<p>Session 1 (about 2 h): read the first lessons slowly. Session 2 (about 2 h): do the hands-on steps. Session 3 (about 2 h): finish the lessons, answer every "Check yourself" question, and write up the deliverable.</p></div>
+
+<h2>Phase 1: Foundations</h2>
+<h3>Week 1: Concepts and your PC</h3>
+<label class="ck"><input type="checkbox" data-k="w1-1"><span>Read <a href="#welcome">Welcome</a> and set up <code>ai-lab</code> and <code>NOTES.md</code></span></label>
+<label class="ck"><input type="checkbox" data-k="w1-2"><span>Module 1: <a href="#what-is-ai">What AI is</a>, <a href="#open-vs-closed">cloud vs local</a>, <a href="#train-vs-infer">training vs inference</a>, <a href="#tokens-context">tokens and context</a>, <a href="#why-local">why local</a></span></label>
+<label class="ck"><input type="checkbox" data-k="w1-3"><span>Module 2: <a href="#pc-hardware">your PC</a>, <a href="#nvidia-driver">driver and CUDA</a>, <a href="#windows-dev-setup">Windows toolbox</a>, <a href="#gpu-tiers">tier map</a></span></label>
+<p><b>Deliverable:</b> <code>NOTES.md</code> with your GPU, VRAM, driver, the size class you will start with, and token counts for five texts.</p>
+
+<h3>Week 2: Model files and your first model</h3>
+<label class="ck"><input type="checkbox" data-k="w2-1"><span>Module 3: <a href="#quantization">quantization</a>, <a href="#file-formats">file formats</a>, <a href="#will-it-fit">Will it fit?</a>, <a href="#speed">speed</a></span></label>
+<label class="ck"><input type="checkbox" data-k="w2-4"><span><a href="#lm-studio">LM Studio</a>: download a model, chat, watch <code>nvidia-smi</code></span></label>
+<label class="ck"><input type="checkbox" data-k="w2-5"><span>Load the same model at 8K and 32K context and record VRAM and speed</span></label>
+<p><b>Deliverable:</b> predicted vs measured VRAM and tokens per second for one model at three settings.</p>
+
+<h3>Week 3: Mastery and model choice</h3>
+<label class="ck"><input type="checkbox" data-k="w3-1"><span><a href="#settings-guide">Settings that matter</a> and the sampling demo. Save three presets.</span></label>
+<label class="ck"><input type="checkbox" data-k="w3-2"><span><a href="#ollama">Ollama</a>, <a href="#hugging-face">Hugging Face</a>, <a href="#choose-model">choosing a model</a>, <a href="#troubleshooting">troubleshooting</a></span></label>
+<label class="ck"><input type="checkbox" data-k="w3-5"><span>Module 5: <a href="#why-refusals">refusals</a>, <a href="#what-uncensored">uncensored models</a>, <a href="#uncensored-safely">safe use</a></span></label>
+<p><b>Deliverable:</b> a ten-prompt shootout between two models, including one uncensored variant if you wish.</p>
+
+<h3>Week 4: Use it for real</h3>
+<label class="ck"><input type="checkbox" data-k="w4-1"><span>Module 6: <a href="#prompting">prompting</a>, <a href="#local-api">local API</a>, <a href="#memory-rag">memory and RAG</a>, <a href="#local-security">hygiene</a>, <a href="#structured-tools">structured output and tools</a></span></label>
+<label class="ck"><input type="checkbox" data-k="w4-2"><span>Build <code>ask.py</code>, the RAG scripts over your notes, and the two-tool assistant</span></label>
+<p><b>Deliverable:</b> <code>ask.py</code>, a RAG index of your notes answering with citations, and <code>tools_demo.py</code> working.</p>
+
+<h2>Phase 2: Training and editing</h2>
+<h3>Week 5: How models work and customizing</h3>
+<label class="ck"><input type="checkbox" data-k="w5-1"><span>Module 7: <a href="#gradient-descent">gradient descent</a>, <a href="#transformer">the transformer</a>, <a href="#chat-templates">chat templates</a>, <a href="#generation">how text gets generated</a></span></label>
+<label class="ck"><input type="checkbox" data-k="w5-2"><span>Module 8: <a href="#customize-ladder">customization ladder</a>, <a href="#modelfiles">Modelfiles</a>. Build a custom model in Ollama.</span></label>
+<p><b>Deliverable:</b> the gradient-descent script run at three learning rates, and one custom Modelfile model.</p>
+
+<h3>Week 6: Data and your first fine-tune</h3>
+<label class="ck"><input type="checkbox" data-k="w6-1"><span><a href="#training-101">Training 101</a> and <a href="#dataset">build your dataset</a>. Review 30 examples by hand.</span></label>
+<label class="ck"><input type="checkbox" data-k="w6-2"><span><a href="#train-env">Set up WSL2 and Unsloth</a>. <code>torch.cuda.is_available()</code> prints True.</span></label>
+<label class="ck"><input type="checkbox" data-k="w6-3"><span><a href="#first-lora">Train your first LoRA</a> on a small model</span></label>
+<p><b>Deliverable:</b> 200+ reviewed examples, a trained adapter, and a run log.</p>
+
+<h3>Week 7: Evaluate, export, go further</h3>
+<label class="ck"><input type="checkbox" data-k="w7-1"><span><a href="#evaluate">Evaluate</a>: blind A/B and a regression set</span></label>
+<label class="ck"><input type="checkbox" data-k="w7-2"><span><a href="#export">Export to GGUF</a> and run it in LM Studio and Ollama</span></label>
+<label class="ck"><input type="checkbox" data-k="w7-3"><span>Read <a href="#beyond-sft">Beyond SFT</a></span></label>
+<p><b>Deliverable:</b> your fine-tune running in LM Studio, with an A/B score against the base model.</p>
+
+<h3>Week 8: Steering, abliteration and the capstone</h3>
+<label class="ck"><input type="checkbox" data-k="w8-1"><span><a href="#directions">Directions</a> and <a href="#steering">steering</a>: run <code>steer.py</code></span></label>
+<label class="ck"><input type="checkbox" data-k="w8-2"><span><a href="#ablation">Ablation and abliteration</a>: run <code>ablate.py</code> on the verbosity direction</span></label>
+<label class="ck"><input type="checkbox" data-k="w8-3"><span><a href="#uncensored-routes">Five routes to your own uncensored model</a> and <a href="#editing-merging">merging</a></span></label>
+<label class="ck"><input type="checkbox" data-k="w8-4"><span>Start the <a href="#capstone">capstone</a></span></label>
+<p><b>Deliverable:</b> an edited model with before-and-after measurements, and a capstone spec.</p>
+
+<h2>Adjusting the pace</h2>
+<div class="tw"><table><thead><tr><th>Your situation</th><th>Suggestion</th></tr></thead><tbody>
+<tr><td>Only 3 hours a week</td><td>Stretch to 16 weeks. Never skip the hands-on parts.</td></tr>
+<tr><td>Full-time learning</td><td>Compress to 3 to 4 weeks</td></tr>
+<tr><td>Small GPU (4 to 8 GB)</td><td>Run 3B to 4B models for fast learning and 7B to 12B with offload for quality. Train 0.6B to 1B locally and use free Colab for 2B to 4B training runs.</td></tr>
+<tr><td>Already comfortable with Python</td><td>Skim 2.3 and 6.2</td></tr>
+</tbody></table></div>
+<div class="box tip"><b>After the eight weeks</b>
+<p>Finish the capstone, then see <a href="#next-steps">Where to go next</a> for agents, MCP and other advanced topics.</p></div>

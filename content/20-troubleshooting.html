@@ -1,0 +1,46 @@
+<!-- {"id": "troubleshooting", "module": "4", "title": "Troubleshooting: when it is slow, broken or strange", "minutes": 10, "optional": true} -->
+<p class="lede">Every local AI user hits the same dozen problems. Here they are, with the fastest checks first.</p>
+<div class="goals"><h4>What you will learn</h4><ul>
+<li>Diagnose slowness, out-of-memory errors and strange output</li>
+<li>Know where to find logs</li>
+<li>Build a habit of changing one thing at a time</li>
+</ul></div>
+
+<details open><summary>It is extremely slow (a few tokens per second)</summary>
+<p>Almost always the model is partly or fully on the CPU. Check <code>nvidia-smi</code> to see if VRAM rose. In Ollama run <code>ollama ps</code> and look at the processor column. Fix: lower the context length, use a smaller quantization, close other apps using VRAM, or choose a smaller model.</p></details>
+<details><summary>Out of memory, failed to load, or crash</summary>
+<p>The model plus cache exceeded VRAM. Lower the context, enable 8-bit KV cache, pick a smaller quantization, close games and video apps, and check that another AI app is not holding a model in memory.</p></details>
+<details><summary>The GPU is not used at all</summary>
+<p>Update the NVIDIA driver and restart. On a laptop confirm the app runs on the NVIDIA GPU. In LM Studio check the selected runtime is CUDA. Look at the logs for lines about GPU detection.</p></details>
+<details><summary>Gibberish, repeating text or odd tokens at the start</summary>
+<p>Often a wrong <b>chat template</b>, or the wrong kind of model (a base model used as a chatbot). Use the instruct version and let the app auto-detect the template. A very low-bit quantization (Q2 or Q3) can also produce gibberish. Try Q4 or higher.</p></details>
+<details><summary>It ignores my long document or my instructions</summary>
+<p>Context is too small and the start was cut off. Raise the context length or shorten the input. Put the key instruction at the end as well as the beginning.</p></details>
+<details><summary>It loops or repeats itself</summary>
+<p>Raise the repeat penalty a little (1.05 to 1.1), lower temperature, or check the model card's recommended settings. Some thinking models loop when sampling is wrong.</p></details>
+<details><summary>It makes up facts</summary>
+<p>This is expected, especially for small models. Supply the facts in the prompt, ask it to say "I do not know" when unsure, and verify anything important.</p></details>
+<details><summary>Answers start with a long "thinking" section</summary>
+<p>You loaded a reasoning model. You can usually hide or collapse it in the UI, and some models allow a switch or prompt flag to turn thinking off for speed.</p></details>
+<details><summary>Disk is full</summary>
+<p>Models are 2 to 50 GB each. In LM Studio delete unused ones from My Models. In Ollama use <code>ollama rm</code>. Consider moving the model folder to a larger drive.</p></details>
+<details><summary>The PC gets hot and loud</summary>
+<p>Generation uses the GPU heavily. Make sure the case has airflow, and on a laptop use a hard surface and plug in the charger. Lower the GPU power limit if needed.</p></details>
+
+<h2>Where the logs are</h2>
+<ul>
+<li><b>LM Studio</b>: Developer tab, then the log view.</li>
+<li><b>Ollama</b>: <code>%LOCALAPPDATA%\Ollama</code> contains <code>app.log</code> and <code>server.log</code>.</li>
+</ul>
+
+<h2>A calm method</h2>
+<ol>
+<li>Write down exactly what you did and what happened.</li>
+<li>Check VRAM, GPU use and logs before guessing.</li>
+<li>Change one setting, retest, and note the result.</li>
+<li>Search the exact error text. Chances are someone solved it.</li>
+</ol>
+
+<div class="quiz"><h3>Check yourself</h3>
+<div class="q" data-correct="3"><p class="qt">A model that used to run fast is now at 3 tokens per second after you raised the context from 8K to 64K. Most likely cause?</p><ol><li>The model weights got corrupted</li><li>The internet is slow</li><li>The cache grew and some layers spilled to the CPU</li></ol><p class="why">Larger context means a bigger cache, which can push the model over the VRAM limit.</p></div>
+</div>

@@ -1,0 +1,144 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>3.1 Parameters, precision and quantization · Local AI Basecamp</title>
+<meta name="description" content="A 9-billion-parameter model sounds like it must be enormous. How big it is on disk and in memory depends on how many bits each number uses. Shrinking the bits is called quantization, and it is the trick that lets big models fit on small cards.">
+<meta property="og:title" content="3.1 Parameters, precision and quantization · Local AI Basecamp">
+<meta property="og:description" content="A 9-billion-parameter model sounds like it must be enormous. How big it is on disk and in memory depends on how many bits each number uses. Shrinking the bits is called quantization, and it is the trick that lets big models fit on small cards.">
+<link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&amp;family=Inter:wght@400;500;600&amp;family=JetBrains+Mono:wght@400;500&amp;display=swap">
+<link rel="stylesheet" href="../assets/css/style.css">
+<script>try{var t=localStorage.getItem('basecamp-theme');if(t==='light'||t==='dark')document.documentElement.setAttribute('data-theme',t)}catch(e){}</script>
+</head>
+<body data-root="../" data-page="quantization">
+<a class="skip" href="#view">Skip to content</a>
+<div class="app">
+  <aside class="rail" id="rail" aria-label="Course map">
+    <a class="brand" href="../index.html"><span class="brand-mark"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 20 10 7l4 6 2-3 5 10z"/></svg></span><span><b>Local AI Basecamp</b><small>from zero to your own model</small></span></a>
+    <div class="prog"><div class="row"><span id="progText">Core lessons</span><span id="progPct"></span></div><div class="meter"><i id="progBar"></i></div></div>
+    <nav id="nav"><div class="mod" data-m="0"><button class="mod-h" type="button" aria-expanded="false"><svg class="chev" width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M4 2l4 4-4 4"/></svg><span class="n"></span><span>Start here</span><span class="c" data-count="0"></span></button><ul><li data-id="welcome"><a href="../lessons/welcome.html"><span class="dot"></span><span>Welcome and how to use this course</span></a></li></ul></div><div class="mod" data-m="1"><button class="mod-h" type="button" aria-expanded="false"><svg class="chev" width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M4 2l4 4-4 4"/></svg><span class="n">1</span><span>AI in plain English</span><span class="c" data-count="1"></span></button><ul><li data-id="what-is-ai"><a href="../lessons/what-is-ai.html"><span class="dot"></span><span><span class="ln">1.1</span> What AI, machine learning and LLMs actually are</span></a></li><li data-id="open-vs-closed"><a href="../lessons/open-vs-closed.html"><span class="dot"></span><span><span class="ln">1.2</span> Cloud AI vs local AI: closed, open-weight and open-source</span></a></li><li data-id="train-vs-infer"><a href="../lessons/train-vs-infer.html"><span class="dot"></span><span><span class="ln">1.3</span> Training vs inference: what your PC will actually do</span></a></li><li data-id="tokens-context"><a href="../lessons/tokens-context.html"><span class="dot"></span><span><span class="ln">1.4</span> Tokens and the context window (the model&#x27;s memory)</span></a></li><li data-id="why-local"><a href="../lessons/why-local.html"><span class="dot"></span><span><span class="ln">1.5</span> Why run AI locally, and what to expect</span></a></li></ul></div><div class="mod" data-m="2"><button class="mod-h" type="button" aria-expanded="false"><svg class="chev" width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M4 2l4 4-4 4"/></svg><span class="n">2</span><span>Your PC</span><span class="c" data-count="2"></span></button><ul><li data-id="pc-hardware"><a href="../lessons/pc-hardware.html"><span class="dot"></span><span><span class="ln">2.1</span> Your PC: CPU, RAM, GPU and VRAM</span></a></li><li data-id="nvidia-driver"><a href="../lessons/nvidia-driver.html"><span class="dot"></span><span><span class="ln">2.2</span> NVIDIA driver, CUDA and checking that the GPU works</span></a></li><li data-id="windows-dev-setup"><a href="../lessons/windows-dev-setup.html"><span class="dot"></span><span><span class="ln">2.3</span> Windows toolbox: terminal, Python, Git and optional WSL2</span></a></li><li data-id="gpu-tiers"><a href="../lessons/gpu-tiers.html"><span class="dot"></span><span><span class="ln">2.4</span> What your PC can run: the tier map</span></a></li></ul></div><div class="mod open" data-m="3"><button class="mod-h" type="button" aria-expanded="true"><svg class="chev" width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M4 2l4 4-4 4"/></svg><span class="n">3</span><span>Model files and the memory math</span><span class="c" data-count="3"></span></button><ul><li data-id="quantization"><a href="../lessons/quantization.html" aria-current="page"><span class="dot"></span><span><span class="ln">3.1</span> Parameters, precision and quantization</span></a></li><li data-id="file-formats"><a href="../lessons/file-formats.html"><span class="dot"></span><span><span class="ln">3.2</span> Model file formats: GGUF, safetensors and friends</span></a></li><li data-id="will-it-fit"><a href="../lessons/will-it-fit.html"><span class="dot"></span><span><span class="ln">3.3</span> Will it fit? The VRAM and RAM calculator</span></a></li><li data-id="speed"><a href="../lessons/speed.html"><span class="dot"></span><span><span class="ln">3.4</span> Speed: tokens per second and what limits it</span></a></li></ul></div><div class="mod" data-m="4"><button class="mod-h" type="button" aria-expanded="false"><svg class="chev" width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M4 2l4 4-4 4"/></svg><span class="n">4</span><span>Run your first models</span><span class="c" data-count="4"></span></button><ul><li data-id="lm-studio"><a href="../lessons/lm-studio.html"><span class="dot"></span><span><span class="ln">4.1</span> Your first local model with LM Studio</span></a></li><li data-id="settings-guide"><a href="../lessons/settings-guide.html"><span class="dot"></span><span><span class="ln">4.2</span> Settings that matter: load options and sampling</span></a></li><li data-id="ollama"><a href="../lessons/ollama.html"><span class="dot"></span><span><span class="ln">4.3</span> Ollama on Windows: command line and server</span></a></li><li data-id="hugging-face"><a href="../lessons/hugging-face.html"><span class="dot"></span><span><span class="ln">4.4</span> Hugging Face: finding and judging models</span></a></li><li data-id="choose-model"><a href="../lessons/choose-model.html"><span class="dot"></span><span><span class="ln">4.5</span> Choosing the right model for the job</span></a></li><li data-id="troubleshooting"><a href="../lessons/troubleshooting.html"><span class="dot"></span><span><span class="ln">4.6</span> Troubleshooting: when it is slow, broken or strange <span class="opt">Optional</span></span></a></li></ul></div><div class="mod" data-m="5"><button class="mod-h" type="button" aria-expanded="false"><svg class="chev" width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M4 2l4 4-4 4"/></svg><span class="n">5</span><span>Aligned vs uncensored models</span><span class="c" data-count="5"></span></button><ul><li data-id="why-refusals"><a href="../lessons/why-refusals.html"><span class="dot"></span><span><span class="ln">5.1</span> Why models refuse: alignment explained</span></a></li><li data-id="what-uncensored"><a href="../lessons/what-uncensored.html"><span class="dot"></span><span><span class="ln">5.2</span> What &quot;uncensored&quot; and &quot;abliterated&quot; models really are</span></a></li><li data-id="uncensored-safely"><a href="../lessons/uncensored-safely.html"><span class="dot"></span><span><span class="ln">5.3</span> Using unrestricted models responsibly and safely</span></a></li></ul></div><div class="mod" data-m="6"><button class="mod-h" type="button" aria-expanded="false"><svg class="chev" width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M4 2l4 4-4 4"/></svg><span class="n">6</span><span>Use it for real</span><span class="c" data-count="6"></span></button><ul><li data-id="prompting"><a href="../lessons/prompting.html"><span class="dot"></span><span><span class="ln">6.1</span> Prompting small local models well</span></a></li><li data-id="local-api"><a href="../lessons/local-api.html"><span class="dot"></span><span><span class="ln">6.2</span> Use your model from Python: the local API</span></a></li><li data-id="memory-rag"><a href="../lessons/memory-rag.html"><span class="dot"></span><span><span class="ln">6.3</span> Memory and RAG: give your model your documents</span></a></li><li data-id="local-security"><a href="../lessons/local-security.html"><span class="dot"></span><span><span class="ln">6.4</span> Privacy, safety and good hygiene for local AI</span></a></li><li data-id="structured-tools"><a href="../lessons/structured-tools.html"><span class="dot"></span><span><span class="ln">6.5</span> Structured output and tool calling</span></a></li></ul></div><div class="mod" data-m="7"><button class="mod-h" type="button" aria-expanded="false"><svg class="chev" width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M4 2l4 4-4 4"/></svg><span class="n">7</span><span>How models really work</span><span class="c" data-count="7"></span></button><ul><li data-id="gradient-descent"><a href="../lessons/gradient-descent.html"><span class="dot"></span><span><span class="ln">7.1</span> How a model learns: gradient descent by hand</span></a></li><li data-id="transformer"><a href="../lessons/transformer.html"><span class="dot"></span><span><span class="ln">7.2</span> Inside the transformer</span></a></li><li data-id="chat-templates"><a href="../lessons/chat-templates.html"><span class="dot"></span><span><span class="ln">7.3</span> Base, instruct, thinking models and chat templates</span></a></li><li data-id="generation"><a href="../lessons/generation.html"><span class="dot"></span><span><span class="ln">7.4</span> How text gets generated, token by token <span class="opt">Optional</span></span></a></li></ul></div><div class="mod" data-m="8"><button class="mod-h" type="button" aria-expanded="false"><svg class="chev" width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M4 2l4 4-4 4"/></svg><span class="n">8</span><span>Customize without training</span><span class="c" data-count="8"></span></button><ul><li data-id="customize-ladder"><a href="../lessons/customize-ladder.html"><span class="dot"></span><span><span class="ln">8.1</span> The customization ladder: choose the right tool</span></a></li><li data-id="modelfiles"><a href="../lessons/modelfiles.html"><span class="dot"></span><span><span class="ln">8.2</span> Custom models with Modelfiles and presets</span></a></li></ul></div><div class="mod" data-m="9"><button class="mod-h" type="button" aria-expanded="false"><svg class="chev" width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M4 2l4 4-4 4"/></svg><span class="n">9</span><span>Fine-tune your own model</span><span class="c" data-count="9"></span></button><ul><li data-id="training-101"><a href="../lessons/training-101.html"><span class="dot"></span><span><span class="ln">9.1</span> Training 101: LoRA, QLoRA and what fits your GPU</span></a></li><li data-id="dataset"><a href="../lessons/dataset.html"><span class="dot"></span><span><span class="ln">9.2</span> Build your training dataset</span></a></li><li data-id="train-env"><a href="../lessons/train-env.html"><span class="dot"></span><span><span class="ln">9.3</span> Set up your training environment on Windows</span></a></li><li data-id="first-lora"><a href="../lessons/first-lora.html"><span class="dot"></span><span><span class="ln">9.4</span> Train your first LoRA with Unsloth</span></a></li><li data-id="evaluate"><a href="../lessons/evaluate.html"><span class="dot"></span><span><span class="ln">9.5</span> Evaluate your fine-tune honestly</span></a></li><li data-id="export"><a href="../lessons/export.html"><span class="dot"></span><span><span class="ln">9.6</span> Export: merge, convert to GGUF, run in LM Studio and Ollama</span></a></li><li data-id="beyond-sft"><a href="../lessons/beyond-sft.html"><span class="dot"></span><span><span class="ln">9.7</span> Beyond SFT: DPO, distillation, RL and more <span class="opt">Optional</span></span></a></li></ul></div><div class="mod" data-m="10"><button class="mod-h" type="button" aria-expanded="false"><svg class="chev" width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M4 2l4 4-4 4"/></svg><span class="n">10</span><span>Uncensor and edit models</span><span class="c" data-count="10"></span></button><ul><li data-id="directions"><a href="../lessons/directions.html"><span class="dot"></span><span><span class="ln">10.1</span> Features are directions: interpretability for builders</span></a></li><li data-id="steering"><a href="../lessons/steering.html"><span class="dot"></span><span><span class="ln">10.2</span> Activation steering: change behaviour without training</span></a></li><li data-id="ablation"><a href="../lessons/ablation.html"><span class="dot"></span><span><span class="ln">10.3</span> Direction ablation and abliteration: editing weights</span></a></li><li data-id="uncensored-routes"><a href="../lessons/uncensored-routes.html"><span class="dot"></span><span><span class="ln">10.4</span> Build your own uncensored custom model: five routes</span></a></li><li data-id="editing-merging"><a href="../lessons/editing-merging.html"><span class="dot"></span><span><span class="ln">10.5</span> Knowledge editing and model merging <span class="opt">Optional</span></span></a></li></ul></div><div class="mod" data-m="11"><button class="mod-h" type="button" aria-expanded="false"><svg class="chev" width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M4 2l4 4-4 4"/></svg><span class="n">11</span><span>Capstone</span><span class="c" data-count="11"></span></button><ul><li data-id="capstone"><a href="../lessons/capstone.html"><span class="dot"></span><span><span class="ln">11.1</span> Capstone: build your own model, end to end</span></a></li><li data-id="next-steps"><a href="../lessons/next-steps.html"><span class="dot"></span><span><span class="ln">11.2</span> Where to go next <span class="opt">Optional</span></span></a></li></ul></div><div class="mod" data-m="R"><button class="mod-h" type="button" aria-expanded="false"><svg class="chev" width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M4 2l4 4-4 4"/></svg><span class="n"></span><span>Reference</span><span class="c" data-count="R"></span></button><ul><li data-id="roadmap"><a href="../lessons/roadmap.html"><span class="dot"></span><span>The 8-week learning plan</span></a></li><li data-id="cheatsheet"><a href="../lessons/cheatsheet.html"><span class="dot"></span><span>Command cheatsheet</span></a></li><li data-id="glossary"><a href="../lessons/glossary.html"><span class="dot"></span><span>Glossary</span></a></li><li data-id="resources"><a href="../lessons/resources.html"><span class="dot"></span><span>Resources and reading list</span></a></li></ul></div></nav>
+  </aside>
+  <div class="main">
+    <div class="top">
+      <button class="btn menu-btn" id="menuBtn" type="button" aria-label="Open course map">Menu</button>
+      <button class="btn search-btn" id="searchBtn" type="button" aria-label="Search lessons">Search <kbd>Ctrl K</kbd></button>
+      <span class="grow"></span>
+      <a class="btn hide-s" href="../lessons/roadmap.html">8-week plan</a>
+      <button class="btn" id="themeBtn" type="button" aria-label="Switch colour theme">Theme</button>
+    </div>
+    <main id="view" tabindex="-1">
+<article><div class="crumbs"><span>Model files and the memory math</span><span class="pill">Lesson 3.1</span><span>12 min</span></div><h1>Parameters, precision and quantization</h1>
+<p class="lede">A 9-billion-parameter model sounds like it must be enormous. How big it is on disk and in memory depends on how many bits each number uses. Shrinking the bits is called quantization, and it is the trick that lets big models fit on small cards.</p>
+<div class="goals"><h4>What you will learn</h4><ul>
+<li>Compute a model's size from its parameter count and precision</li>
+<li>Explain what quantization is and what it costs in quality</li>
+<li>Quantize a block of weights by hand and see where the error comes from</li>
+<li>Read names like Q4_K_M and Q8_0</li>
+<li>Choose a sensible quantization for your VRAM</li>
+</ul></div>
+
+<h2>Size = parameters × bits per weight</h2>
+<p>Each weight is a number, and a number takes memory. Models are usually trained in 16-bit precision (2 bytes per weight). So a 9B model at 16 bits is about 9 × 2 = 18 GB. A 70B model is 140 GB. That is too big for any home graphics card.</p>
+<div class="box concept"><b>Concept: quantization</b>
+<p>Quantization stores each weight with fewer bits, for example 4 bits instead of 16. The model becomes about four times smaller. Because the weights are stored less precisely, there is a small loss of quality. It is like saving a photo as JPEG: much smaller, and for most purposes you cannot tell.</p></div>
+
+<h2>The formula</h2>
+<p>Size in GB ≈ parameters (in billions) × bits per weight ÷ 8.</p>
+<p>Example: 9B at Q4_K_M, which averages about 4.9 bits per weight: 9 × 4.9 ÷ 8 ≈ 5.5 GB. A real 9B Q4_K_M file measures about 5.6 GB, which matches.</p>
+
+<h2>How quantization works</h2>
+<p>Quantization stores each weight as a small integer plus a shared <b>scale</b>. To use a weight, the runtime multiplies the integer by the scale. Weights are handled in small <b>blocks</b> (32 or 256 weights in llama.cpp), each with its own scale, so one unusual value only affects its own block.</p>
+<h3>Worked example: eight weights to 4 bits</h3>
+<p>Take a block of eight weights: <code>[0.20, −0.35, 0.10, 0.04, −0.15, 0.70, −0.22, 0.30]</code>. Four bits gives 16 integer levels, −8 to 7.</p>
+<ol>
+<li><b>Scale.</b> Map the largest magnitude (0.70) to 7: scale = 0.70 ÷ 7 = 0.10.</li>
+<li><b>Round.</b> Divide each weight by the scale and round to the nearest integer.</li>
+<li><b>Dequantize.</b> Multiply back: the model computes with these values.</li>
+</ol>
+<div class="tw"><table><thead><tr><th>Weight</th><th>÷ 0.10</th><th>4-bit integer</th><th>Back to a number</th><th>Error</th></tr></thead><tbody>
+<tr><td class="num">0.20</td><td class="num">2.0</td><td class="num">2</td><td class="num">0.20</td><td class="num">0.00</td></tr>
+<tr><td class="num">−0.35</td><td class="num">−3.5</td><td class="num">−4</td><td class="num">−0.40</td><td class="num">−0.05</td></tr>
+<tr><td class="num">0.10</td><td class="num">1.0</td><td class="num">1</td><td class="num">0.10</td><td class="num">0.00</td></tr>
+<tr><td class="num">0.04</td><td class="num">0.4</td><td class="num">0</td><td class="num">0.00</td><td class="num">−0.04</td></tr>
+<tr><td class="num">−0.15</td><td class="num">−1.5</td><td class="num">−2</td><td class="num">−0.20</td><td class="num">−0.05</td></tr>
+<tr><td class="num">0.70</td><td class="num">7.0</td><td class="num">7</td><td class="num">0.70</td><td class="num">0.00</td></tr>
+<tr><td class="num">−0.22</td><td class="num">−2.2</td><td class="num">−2</td><td class="num">−0.20</td><td class="num">+0.02</td></tr>
+<tr><td class="num">0.30</td><td class="num">3.0</td><td class="num">3</td><td class="num">0.30</td><td class="num">0.00</td></tr>
+</tbody></table></div>
+<p>The typical (root-mean-square) error is about 0.03, roughly 12% of an average weight here. Notice that the tiny weight 0.04 became exactly zero.</p>
+<ul>
+<li><b>Storage.</b> 8 weights × 4 bits plus one 16-bit scale = 48 bits, or 6 bits per weight. With blocks of 32, the scale is shared more widely: (32 × 4 + 16) ÷ 32 = 4.5 bits per weight. That is exactly llama.cpp's <code>Q4_0</code> layout.</li>
+<li><b>The outlier problem.</b> Change 0.70 to 0.32 and the scale halves, so the grid is finer and the error drops to about a third. One big weight stretches the grid for its whole block. This is why real schemes use small blocks and keep sensitive layers at higher precision.</li>
+<li><b>Scale plus minimum.</b> Mapping the block's actual range (−0.35 to 0.70) onto the 16 levels instead of a symmetric grid cuts the error by about 40% here. The K-quants (<code>Q4_K_M</code> and friends) use this idea, with blocks grouped into "super-blocks".</li>
+<li><b>Importance matrix (imatrix).</b> Statistics from running the model on sample text tell the quantizer which weights matter most, so it spends precision where it counts. Files labelled "imatrix" or "i1" usually lose less quality at 4 bits and below.</li>
+</ul>
+
+<h2>Reading quantization names</h2>
+<p>The popular format for local models is <b>GGUF</b>. Its quantization names look like <code>Q4_K_M</code>:</p>
+<ul>
+<li><b>Q4</b>: about 4 bits per weight on average.</li>
+<li><b>K</b>: the "K-quant" method, which gives more bits to the most sensitive parts.</li>
+<li><b>M</b> (medium): a size variant. S is small, L is large.</li>
+<li><b>Q8_0</b>: 8 bits, an older simple scheme. Near-lossless.</li>
+<li><b>F16</b> or <b>BF16</b>: the original 16-bit precision.</li>
+<li>Names like <b>IQ3_XS</b> use cleverer compression for very low bit counts.</li>
+<li><b>MXFP4</b>: a 4-bit floating-point format some newer models are released in directly.</li>
+</ul>
+
+<h2>Explore it</h2>
+<div class="widget" data-widget="quant"></div>
+
+<h2>The quality curve</h2>
+<div class="tw"><table><thead><tr><th>Level</th><th>Rough effect</th><th>When to use</th></tr></thead><tbody>
+<tr><td>F16 / BF16</td><td>Original</td><td>Reference, fine-tuning inputs</td></tr>
+<tr><td>Q8_0</td><td>Almost no loss</td><td>When you have spare VRAM</td></tr>
+<tr><td>Q6_K</td><td>Very close to original</td><td>Good when it fits</td></tr>
+<tr><td>Q5_K_M</td><td>Close</td><td>Good balance</td></tr>
+<tr><td>Q4_K_M</td><td>Small, usually acceptable loss</td><td>The usual sweet spot</td></tr>
+<tr><td>Q3_K_M</td><td>Noticeable loss</td><td>Only to squeeze a bigger model in</td></tr>
+<tr><td>Q2_K</td><td>Large loss, often unreliable</td><td>Rarely a good idea</td></tr>
+</tbody></table></div>
+
+<h2>How quality loss is measured</h2>
+<ul>
+<li><b>Perplexity (PPL)</b>: how surprised the model is by real text. Lower is better. For quantization you look at the <i>increase</i> compared with the original.</li>
+<li><b>KL divergence (KLD)</b>: how different the quantized model's whole probability distribution is from the original's at each step. Zero means identical. It catches changes perplexity can hide.</li>
+</ul>
+<p>llama.cpp publishes measurements like these for Llama 3 8B. The pattern holds for most models:</p>
+<div class="tw"><table><thead><tr><th>Quantization</th><th>Size (GiB)</th><th>Perplexity increase</th><th>KL divergence</th></tr></thead><tbody>
+<tr><td>Q8_0</td><td class="num">7.96</td><td class="num">+0.003</td><td class="num">0.001</td></tr>
+<tr><td>Q6_K</td><td class="num">6.14</td><td class="num">+0.022</td><td class="num">0.006</td></tr>
+<tr><td>Q5_K_M</td><td class="num">5.33</td><td class="num">+0.057</td><td class="num">0.011</td></tr>
+<tr><td>Q4_K_M (with imatrix)</td><td class="num">4.58</td><td class="num">+0.151</td><td class="num">0.028</td></tr>
+<tr><td>Q3_K_M</td><td class="num">3.74</td><td class="num">+0.657</td><td class="num">0.102</td></tr>
+<tr><td>Q2_K (with imatrix)</td><td class="num">2.96</td><td class="num">+2.416</td><td class="num">0.332</td></tr>
+</tbody></table></div>
+<p>Notice the knee: going from 8 bits down to about 4.5 costs little, and every step below 4 bits costs much more than the last.</p>
+
+<h2>A note on 16-bit formats</h2>
+<p>Training normally uses <b>BF16</b>, a 16-bit floating-point format with the same range as 32-bit numbers but less precision. The older <b>FP16</b> has more precision but a much smaller range, so large values can overflow during training. That is why you will see <code>bf16</code> in training scripts and in conversion commands (lesson 9.6).</p>
+
+<div class="box tip"><b>The golden rule</b>
+<p>A bigger model at Q4 usually beats a smaller model at Q8. A 14B model at Q4 (about 8.5 GB) is typically better than a 7B model at Q8 (about 7.5 GB). So the best use of your VRAM is to pick the biggest model that fits at around Q4 to Q5, then spend leftover memory on context.</p></div>
+<p>The exception is very small models (under about 4B). They suffer more from aggressive compression, so use Q6 or Q8 for them if they fit.</p>
+
+<div class="quiz"><h3>Check yourself</h3>
+<div class="q" data-correct="2"><p class="qt">About how large is a 14B model at roughly 4.9 bits per weight?</p><ol><li>14 GB</li><li>About 8.6 GB</li><li>About 28 GB</li></ol><p class="why">14 × 4.9 ÷ 8 ≈ 8.6 GB.</p></div>
+<div class="q" data-correct="3"><p class="qt">Which usually gives better results on the same 8 GB card?</p><ol><li>A 3B model at F16</li><li>A 1B model at Q8</li><li>A 9B model at Q4</li></ol><p class="why">Parameter count matters more than precision once you are at about 4 bits.</p></div>
+<div class="q" data-correct="1"><p class="qt">What does the "K" in Q4_K_M mean?</p><ol><li>The K-quant method, which spends more bits on sensitive weights</li><li>1,000 parameters</li><li>The model has been keyed to your GPU</li></ol><p class="why">It names the quantization method, not a hardware setting.</p></div>
+</div>
+
+<div class="lesson-nav"><div><button class="btn primary" id="doneBtn" type="button" data-id="quantization">Mark lesson complete</button></div><div class="nav-links"><a class="btn" href="gpu-tiers.html">← What your PC can run: the tier map</a><a class="btn primary" href="file-formats.html">Model file formats: GGUF,… →</a></div></div></article>
+    </main>
+  </div>
+</div>
+<div class="scrim" id="scrim" role="dialog" aria-modal="true" aria-label="Search">
+  <div class="sbox"><input id="sinput" type="text" placeholder="Search lessons and terms, e.g. VRAM, GGUF, LoRA" autocomplete="off"><div class="sres" id="sres"></div></div>
+</div>
+<script src="../assets/js/course-data.js"></script>
+<script src="../assets/js/widgets.js"></script>
+<script src="../assets/js/app.js"></script>
+</body>
+</html>
